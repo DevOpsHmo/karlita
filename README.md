@@ -2,11 +2,6 @@
 
 App web para **Revisión de carpetas** y **Acompañamiento y observación de clase**, con resultados por maestro, escuela y zona. Los datos y usuarios viven en **Supabase**. El avance de cada formulario se guarda solo (nube + dispositivo) si se cierra la pestaña o se cambia de app.
 
-## Acceso
-
-- ATP: `atp.karla@zona-x.sonora.mx` · contraseña `kksa123`
-- Supervisión: `supervision@zona-x.sonora.mx` · contraseña `supzonax`
-
 ## Desarrollo local
 
 Copia `.env.example` a `.env` con la URL y las llaves de Supabase.
