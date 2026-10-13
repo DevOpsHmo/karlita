@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { FolderForm } from "@/components/FolderForm";
+import { Loading } from "@/components/Loading";
 import { emptyFolderPayload, type FolderPayload } from "@/lib/folder-form";
 
 export default function EditFolderPage() {
@@ -23,9 +24,9 @@ export default function EditFolderPage() {
       });
   }, [id]);
 
-  if (!data) return <p className="p-8">Cargando…</p>;
+  if (!data) return <Loading />;
   return (
-    <Suspense fallback={<p className="p-8">Cargando…</p>}>
+    <Suspense fallback={<Loading />}>
       <FolderForm
         reviewId={id}
         initialTeacherId={data.teacher.id}

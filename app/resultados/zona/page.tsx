@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Bar } from "@/components/Bar";
 import { InstitutionHeader } from "@/components/InstitutionHeader";
+import { ItemStatsPanel } from "@/components/ItemStatsPanel";
+import { Loading } from "@/components/Loading";
 import { ShareActions } from "@/components/ShareActions";
 
 type Stats = {
@@ -26,14 +28,14 @@ export default function ZonaPage() {
       .then((r) => r.json())
       .then(setStats);
   }, []);
-  if (!stats) return <p className="p-8">Cargando…</p>;
+  if (!stats) return <Loading />;
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
       <InstitutionHeader title="Resultados grupales de zona" />
       <ShareActions
         sharePath="/api/zona/share"
-        message="Supervisión de Zona X comparte los resultados grupales de las tres escuelas (EST 6, 60 y 72), ciclo 2026-2027. Es solo consulta e impresión; no se pide firma:"
+        message="Supervisión de Zona X comparte los resultados grupales de las tres escuelas (EST 6, 60 y 72), ciclo 2026-2027."
       />
       <section className="mb-6 rounded-2xl bg-[#fffdf8] p-5 ring-1 ring-[#e6dcc8]">
         <p className="mb-3 text-sm">
@@ -43,6 +45,7 @@ export default function ZonaPage() {
         <Bar label="Zona · carpetas (% Sí)" pct={stats.zona.folderPct} />
         <Bar label="Zona · observación (% Sí)" pct={stats.zona.visitPct} />
       </section>
+      <ItemStatsPanel fetchUrl="/api/item-stats?scope=zona" />
       {stats.schools.map((s) => (
         <section key={s.id} className="mb-4 rounded-2xl bg-[#fffdf8] p-5 ring-1 ring-[#e6dcc8]">
           <h2 className="font-bold">

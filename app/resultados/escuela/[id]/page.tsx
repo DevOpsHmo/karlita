@@ -5,6 +5,8 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Bar } from "@/components/Bar";
 import { InstitutionHeader } from "@/components/InstitutionHeader";
+import { ItemStatsPanel } from "@/components/ItemStatsPanel";
+import { Loading } from "@/components/Loading";
 import { ShareActions } from "@/components/ShareActions";
 import { folderYesPercent, type FolderPayload } from "@/lib/folder-form";
 import { visitYesPercent, type VisitPayload } from "@/lib/visit-form";
@@ -40,7 +42,7 @@ export default function EscuelaPage() {
     });
   }, [id]);
 
-  if (!school) return <p className="p-8">Cargando…</p>;
+  if (!school) return <Loading />;
 
   const folderPcts = teachers.flatMap((t) =>
     t.folderReviews.map((r) => folderYesPercent(JSON.parse(r.payload) as FolderPayload).pct)
@@ -57,12 +59,13 @@ export default function EscuelaPage() {
       <p className="mb-4 text-center text-xs">{school.cct}</p>
       <ShareActions
         sharePath={`/api/schools/${id}/share`}
-        message={`Supervisión de Zona X comparte los resultados de ${school.shortName} (${school.cct}), ciclo 2026-2027. Es solo consulta e impresión; no se pide firma:`}
+        message={`Supervisión de Zona X comparte los resultados de ${school.shortName} (${school.cct}), ciclo 2026-2027.`}
       />
       <div className="mb-6 rounded-2xl bg-[#fffdf8] p-5 ring-1 ring-[#e6dcc8]">
         <Bar label="Carpetas (% Sí)" pct={avg(folderPcts)} />
         <Bar label="Observación (% Sí)" pct={avg(visitPcts)} />
       </div>
+      <ItemStatsPanel fetchUrl={`/api/item-stats?scope=escuela&id=${id}`} />
       <ul className="space-y-2">
         {teachers.map((t) => {
           const fp = avg(t.folderReviews.map((r) => folderYesPercent(JSON.parse(r.payload) as FolderPayload).pct));
@@ -72,9 +75,14 @@ export default function EscuelaPage() {
               <Link href={`/resultados/maestro/${t.id}`} className="font-medium text-[#123f28]">
                 {t.name}
               </Link>
-              <p className="text-xs text-[#5a6b5e]">
+              <p className="mb-2 text-xs text-[#5a6b5e]">
                 {t.disciplina} · Carpetas {fp}% · Observación {vp}%
               </p>
+              <ShareActions
+                sharePath={`/api/teachers/${t.id}/share`}
+                includeAckLink
+                message={`Hola ${t.name}. Supervisión de Zona X le comparte el resumen de su evaluación (ciclo 2026-2027).`}
+              />
             </li>
           );
         })}

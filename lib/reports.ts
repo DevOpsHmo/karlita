@@ -1,5 +1,6 @@
 import { folderYesPercent, type FolderPayload } from "./folder-form";
 import { visitYesPercent, type VisitPayload } from "./visit-form";
+import { computeItemStats } from "./item-stats";
 import { listClassVisits, listFolderReviews, listSchools, listTeachers, type School } from "./store";
 
 const avg = (a: number[]) => (a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length) : 0);
@@ -29,6 +30,7 @@ export async function schoolReport(school: School) {
     teachers: rows,
     folderPct: avg(rows.filter((r) => r.folders).map((r) => r.folderPct)),
     visitPct: avg(rows.filter((r) => r.visits).map((r) => r.visitPct)),
+    itemStats: await computeItemStats({ schoolId: school.id }),
   };
 }
 
@@ -52,5 +54,6 @@ export async function zonaReport() {
       folderPct: withF.length ? Math.round(withF.reduce((a, r) => a + r.folderPct, 0) / withF.length) : 0,
       visitPct: withV.length ? Math.round(withV.reduce((a, r) => a + r.visitPct, 0) / withV.length) : 0,
     },
+    itemStats: await computeItemStats({}),
   };
 }

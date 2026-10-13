@@ -1,9 +1,10 @@
 import { Suspense } from "react";
 import { FolderForm } from "@/components/FolderForm";
+import { Loading } from "@/components/Loading";
 
 export default function CarpetasPage() {
   return (
-    <Suspense fallback={<p className="p-8">Cargando…</p>}>
+    <Suspense fallback={<Loading />}>
       <FolderForm />
     </Suspense>
   );

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Bar } from "@/components/Bar";
 import { ShareActions } from "@/components/ShareActions";
+import { Loading } from "@/components/Loading";
 import { ACK_CLASS, ACK_LABELS } from "@/lib/ack-labels";
 
 type Stats = {
@@ -40,7 +41,7 @@ export default function ResultadosPage() {
       });
   }, []);
 
-  if (!stats) return <p className="p-8">Cargando…</p>;
+  if (!stats) return <Loading />;
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
@@ -48,7 +49,7 @@ export default function ResultadosPage() {
       <p className="mb-6 text-sm text-[#5a6b5e]">Ciclo 2026-2027 · Zona Escolar X · 3 escuelas</p>
       <ShareActions
         sharePath="/api/zona/share"
-        message="Supervisión de Zona X comparte los resultados grupales de las tres escuelas (EST 6, 60 y 72), ciclo 2026-2027. Es solo consulta e impresión; no se pide firma:"
+        message="Supervisión de Zona X comparte los resultados grupales de las tres escuelas (EST 6, 60 y 72), ciclo 2026-2027."
       />
 
       <section className="mb-6 rounded-2xl bg-[#fffdf8] p-5 ring-1 ring-[#e6dcc8]">
@@ -77,9 +78,9 @@ export default function ResultadosPage() {
                 Ver escuela
               </Link>
               <ShareActions
-                showPrint={false}
+                showPrint={true}
                 sharePath={`/api/schools/${s.id}/share`}
-                message={`Supervisión de Zona X comparte los resultados de ${s.shortName} (${s.cct}), ciclo 2026-2027. Es solo consulta e impresión; no se pide firma:`}
+                message={`Supervisión de Zona X comparte los resultados de ${s.shortName} (${s.cct}), ciclo 2026-2027.`}
               />
             </div>
           </div>
@@ -91,7 +92,7 @@ export default function ResultadosPage() {
         </section>
       ))}
 
-      <h2 className="mb-2 mt-8 font-bold">Fichas por maestro</h2>
+      <h2 className="mb-2 mt-8 font-bold print:mt-0 print:pt-10">Fichas por maestro</h2>
       <ul className="space-y-2">
         {teachers.map((t) => (
           <li key={t.id}>

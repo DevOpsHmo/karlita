@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { folderYesPercent, type FolderPayload } from "@/lib/folder-form";
 import { visitYesPercent, type VisitPayload } from "@/lib/visit-form";
+import { computeItemStats } from "@/lib/item-stats";
 import { ackStatus, getAcknowledgment, getTeacherByToken, listClassVisits, listFolderReviews } from "@/lib/store";
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ token: string }> }) {
@@ -41,5 +42,6 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       : null,
     ack,
     status: ackStatus(ack, lastFolder?.createdAt, lastVisit?.createdAt),
+    itemStats: await computeItemStats({ teacherId: teacher.id }),
   });
 }

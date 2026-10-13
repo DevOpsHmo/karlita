@@ -4,11 +4,15 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Bar } from "@/components/Bar";
 import { InstitutionHeader } from "@/components/InstitutionHeader";
+import { ItemStatsPanel, type ItemStatsPayload } from "@/components/ItemStatsPanel";
+import { Loading } from "@/components/Loading";
 import { PrintOnly } from "@/components/ShareActions";
+import { useAutoPrint } from "@/components/useAutoPrint";
 
 type Report = {
   zona: { teachers: number; folderPct: number; visitPct: number };
   schools: { id: string; shortName: string; cct: string; teachers: number; folderPct: number; visitPct: number }[];
+  itemStats: ItemStatsPayload;
 };
 
 export default function PublicZonaPage() {
@@ -25,8 +29,10 @@ export default function PublicZonaPage() {
       });
   }, [token]);
 
+  useAutoPrint(Boolean(data));
+
   if (error) return <p className="p-8 text-red-700">{error}</p>;
-  if (!data) return <p className="p-8">Cargando…</p>;
+  if (!data) return <Loading />;
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
@@ -40,6 +46,7 @@ export default function PublicZonaPage() {
         <Bar label="Zona · carpetas (% Sí)" pct={data.zona.folderPct} />
         <Bar label="Zona · observación (% Sí)" pct={data.zona.visitPct} />
       </section>
+      <ItemStatsPanel stats={data.itemStats} />
       {data.schools.map((s) => (
         <section key={s.id} className="mb-4 rounded-2xl bg-[#fffdf8] p-5 ring-1 ring-[#e6dcc8]">
           <h2 className="font-bold">

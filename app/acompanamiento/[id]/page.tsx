@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { VisitForm } from "@/components/VisitForm";
+import { Loading } from "@/components/Loading";
 import { emptyVisitPayload, type VisitPayload } from "@/lib/visit-form";
 
 export default function EditVisitPage() {
@@ -23,9 +24,9 @@ export default function EditVisitPage() {
       });
   }, [id]);
 
-  if (!data) return <p className="p-8">Cargando…</p>;
+  if (!data) return <Loading />;
   return (
-    <Suspense fallback={<p className="p-8">Cargando…</p>}>
+    <Suspense fallback={<Loading />}>
       <VisitForm
         visitId={id}
         initialTeacherId={data.teacher.id}

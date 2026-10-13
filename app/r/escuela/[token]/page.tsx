@@ -4,13 +4,17 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Bar } from "@/components/Bar";
 import { InstitutionHeader } from "@/components/InstitutionHeader";
+import { ItemStatsPanel, type ItemStatsPayload } from "@/components/ItemStatsPanel";
+import { Loading } from "@/components/Loading";
 import { PrintOnly } from "@/components/ShareActions";
+import { useAutoPrint } from "@/components/useAutoPrint";
 
 type Report = {
   school: { name: string; shortName: string; cct: string };
   folderPct: number;
   visitPct: number;
   teachers: { name: string; disciplina: string; folderPct: number; visitPct: number }[];
+  itemStats: ItemStatsPayload;
 };
 
 export default function PublicEscuelaPage() {
@@ -27,8 +31,10 @@ export default function PublicEscuelaPage() {
       });
   }, [token]);
 
+  useAutoPrint(Boolean(data));
+
   if (error) return <p className="p-8 text-red-700">{error}</p>;
-  if (!data) return <p className="p-8">Cargando…</p>;
+  if (!data) return <Loading />;
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
@@ -43,6 +49,7 @@ export default function PublicEscuelaPage() {
         <Bar label="Carpetas (% Sí)" pct={data.folderPct} />
         <Bar label="Observación (% Sí)" pct={data.visitPct} />
       </div>
+      <ItemStatsPanel stats={data.itemStats} />
       <ul className="space-y-2">
         {data.teachers.map((t) => (
           <li key={t.name} className="rounded-xl bg-[#fffdf8] px-4 py-3 ring-1 ring-[#e6dcc8]">

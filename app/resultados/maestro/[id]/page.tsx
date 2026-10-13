@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Bar } from "@/components/Bar";
+import { ItemStatsPanel } from "@/components/ItemStatsPanel";
 import { ShareActions } from "@/components/ShareActions";
 import { InstitutionHeader } from "@/components/InstitutionHeader";
+import { Loading } from "@/components/Loading";
 import { ACK_CLASS, ACK_LABELS } from "@/lib/ack-labels";
 import { FOLDER_ITEMS, folderYesPercent, type FolderPayload } from "@/lib/folder-form";
 import { visitYesPercent, type VisitPayload } from "@/lib/visit-form";
@@ -43,7 +45,7 @@ export default function MaestroPage() {
       .then((rows) => setAckRow(rows.find((x: { teacherId: string }) => x.teacherId === id) ?? null));
   }, [id]);
 
-  if (!teacher) return <p className="p-8">Cargando…</p>;
+  if (!teacher) return <Loading />;
 
   const lastFolder = folders[0] ? (JSON.parse(folders[0].payload) as FolderPayload) : null;
   const lastVisit = visits[0] ? (JSON.parse(visits[0].payload) as VisitPayload) : null;
@@ -88,7 +90,8 @@ export default function MaestroPage() {
       )}
       <ShareActions
         sharePath={`/api/teachers/${id}/share`}
-        message={`Hola ${teacher.name}. Supervisión de Zona X le comparte el resumen de su evaluación (ciclo 2026-2027). Revise la información, indique si está de acuerdo y firme:`}
+        includeAckLink
+        message={`Hola ${teacher.name}. Supervisión de Zona X le comparte el resumen de su evaluación (ciclo 2026-2027).`}
       />
       <div className="no-print mb-4 flex flex-wrap gap-2">
         <Link href={`/carpetas?teacher=${id}`} className="rounded-lg bg-[#c4a35a] px-4 py-2 text-[#123f28]">
@@ -100,6 +103,7 @@ export default function MaestroPage() {
       </div>
       <Bar label="Última revisión de carpetas (% Sí)" pct={folderPct} />
       <Bar label="Última observación de clase (% Sí)" pct={visitPct} />
+      <ItemStatsPanel fetchUrl={`/api/item-stats?scope=maestro&id=${id}`} />
 
       {nos.length > 0 && (
         <section className="mt-4 rounded-2xl bg-[#fffdf8] p-4 ring-1 ring-[#e6dcc8]">
