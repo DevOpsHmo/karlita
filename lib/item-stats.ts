@@ -256,7 +256,8 @@ export async function computeItemStats(opts: {
   schoolId?: string | null;
   period?: Period | null;
 }) {
-  let [folders, visits] = await Promise.all([listFolderReviews(opts), listClassVisits(opts)]);
+  const [folders, visitsRaw] = await Promise.all([listFolderReviews(opts), listClassVisits(opts)]);
+  let visits = visitsRaw;
   if (opts.period) {
     visits = visits.filter((v) => visitPeriodFromDate(parseVisit(v)?.fecha) === opts.period);
   }
