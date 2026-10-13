@@ -25,7 +25,6 @@ export default function PublicTeacherSignPage() {
   const [data, setData] = useState<Review | null>(null);
   const [error, setError] = useState("");
   const [agreed, setAgreed] = useState<"si" | "no" | "">("");
-  const [nombre, setNombre] = useState("");
   const [comentario, setComentario] = useState("");
   const [firma, setFirma] = useState("");
   const [saving, setSaving] = useState(false);
@@ -53,7 +52,7 @@ export default function PublicTeacherSignPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         agreed: agreed === "si",
-        nombreFirma: nombre,
+        nombreFirma: data?.teacher.name ?? "",
         firmaDataUrl: firma,
         comentario,
       }),
@@ -96,7 +95,7 @@ export default function PublicTeacherSignPage() {
       {alreadyOk && data.ack && (
         <section className="mt-4 rounded-2xl bg-[#fffdf8] p-5 ring-1 ring-[#e6dcc8]">
           <p className="text-sm">
-            Firmó {data.ack.nombreFirma} el {new Date(data.ack.signedAt).toLocaleString("es-MX")}:{" "}
+            Firmó el {new Date(data.ack.signedAt).toLocaleString("es-MX")}:{" "}
             {data.ack.agreed ? "Sí estoy de acuerdo" : "No estoy de acuerdo"}
           </p>
           {data.ack.comentario && <p className="mt-2 text-sm">{data.ack.comentario}</p>}
@@ -122,15 +121,6 @@ export default function PublicTeacherSignPage() {
               />
             </label>
           )}
-          <label className="block text-sm">
-            Nombre completo (firma)
-            <input
-              className="mt-1 w-full rounded-lg border border-[#d9c9a3] px-3 py-2"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              required
-            />
-          </label>
           <div>
             <p className="mb-1 text-sm">Firme con el dedo o el mouse</p>
             <SignaturePad onChange={setFirma} />
@@ -138,8 +128,8 @@ export default function PublicTeacherSignPage() {
           {error && <p className="text-sm text-red-700">{error}</p>}
           <button
             type="submit"
-            disabled={saving || !agreed}
-            className="w-full cursor-pointer rounded-xl bg-[#6a0938] py-3 font-semibold text-white disabled:opacity-60"
+            disabled={saving || !agreed || !firma}
+            className="cursor-pointer rounded-xl bg-[#6a0938] px-6 py-2.5 font-semibold text-white disabled:opacity-60"
           >
             {saving ? "Enviando…" : "Enviar acuerdo y firma"}
           </button>

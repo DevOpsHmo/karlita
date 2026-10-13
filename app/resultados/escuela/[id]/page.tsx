@@ -24,6 +24,9 @@ export default function EscuelaPage() {
       classVisits: { payload: string }[];
     }[]
   >([]);
+  const [acks, setAcks] = useState<
+    Record<string, { agreed: boolean; firmaDataUrl: string; comentario: string; signedAt: string } | null>
+  >({});
 
   useEffect(() => {
     Promise.all([
@@ -31,7 +34,8 @@ export default function EscuelaPage() {
       fetch(`/api/teachers?schoolId=${id}`).then((r) => r.json()),
       fetch(`/api/folder-reviews?schoolId=${id}`).then((r) => r.json()),
       fetch(`/api/class-visits?schoolId=${id}`).then((r) => r.json()),
-    ]).then(([schools, tlist, folders, visits]) => {
+      fetch("/api/acknowledgments").then((r) => r.json()),
+    ]).then(([schools, tlist, folders, visits, ackRows]) => {
       const s = schools.find((x: { id: string }) => x.id === id);
       setSchool(s);
       const merged = tlist.map((t: { id: string; name: string; disciplina: string }) => ({
@@ -40,6 +44,13 @@ export default function EscuelaPage() {
         classVisits: visits.filter((v: { teacherId: string }) => v.teacherId === t.id),
       }));
       setTeachers(merged);
+      setAcks(
+        Object.fromEntries(
+          (ackRows as { teacherId: string; ack: { agreed: boolean; firmaDataUrl: string; comentario: string; signedAt: string } | null }[]).map(
+            (r) => [r.teacherId, r.ack]
+          )
+        )
+      );
     });
   }, [id]);
 
@@ -61,6 +72,17 @@ export default function EscuelaPage() {
       <ShareActions
         sharePath={view === "escuela" ? `/api/schools/${id}/share` : `/api/teachers/${view}/share`}
         includeAckLink={view !== "escuela"}
+        signature={
+          view !== "escuela" && acks[view]?.firmaDataUrl
+            ? {
+                image: acks[view]!.firmaDataUrl,
+                agreed: acks[view]!.agreed,
+                signedAt: acks[view]!.signedAt,
+                comment: acks[view]!.comentario,
+                teacherName: teachers.find((t) => t.id === view)?.name,
+              }
+            : null
+        }
         message={
           view === "escuela"
             ? `Supervisión de Zona X comparte los resultados de ${school.shortName} (${school.cct}), ciclo 2026-2027.`

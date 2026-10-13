@@ -96,23 +96,10 @@ export async function buildStatsPdf(
     }
   };
 
-  const drawPoints = (bars: ChartBar[]) => {
-    const total = bars.reduce((a, b) => a + b.count, 0) || 1;
-    for (const bar of bars) {
-      ensure(22);
-      const pct = bar.count / total;
-      ctx.page.drawRectangle({ x: 58, y: ctx.y, width: 400, height: 10, color: rgb(0.96, 0.95, 0.92) });
-      ctx.page.drawCircle({ x: 58 + 400 * pct, y: ctx.y + 5, size: 5, color: colorOf(bar) });
-      ctx.y -= 4;
-      text(`${bar.label}: ${bar.count} (${Math.round(pct * 100)}%)`, 9, font, rgb(0.25, 0.25, 0.25));
-    }
-  };
-
   const drawSet = (bars: ChartBar[], kind: ChartKind, heading?: string) => {
     if (heading) text(heading, 9, bold, rgb(0.416, 0.035, 0.22));
     if (kind === "table") drawTable(bars);
     else if (kind === "pie") drawPie(bars);
-    else if (kind === "points") drawPoints(bars);
     else drawBars(bars);
   };
 

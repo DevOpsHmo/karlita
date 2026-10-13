@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { Select } from "@/components/Select";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -10,10 +10,31 @@ function LoginForm() {
   const [email, setEmail] = useState("atp.karla@zona-x.sonora.mx");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtml = html.style.overflow;
+    const prevBody = body.style.overflow;
+    const prevTouch = html.style.touchAction;
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    html.style.touchAction = "manipulation";
+    body.style.overscrollBehavior = "none";
+    return () => {
+      html.style.overflow = prevHtml;
+      body.style.overflow = prevBody;
+      html.style.touchAction = prevTouch;
+      body.style.overscrollBehavior = "";
+    };
+  }, []);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (busy) return;
     setError("");
+    setBusy(true);
     const res = await fetch("/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -21,6 +42,7 @@ function LoginForm() {
     });
     if (!res.ok) {
       setError("Correo o contraseña incorrectos");
+      setBusy(false);
       return;
     }
     router.push(params.get("next") || "/");
@@ -28,7 +50,7 @@ function LoginForm() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4">
+    <main className="mx-auto flex h-dvh max-w-md flex-col justify-center overflow-hidden overscroll-none px-4">
       <div className="rounded-2xl bg-[#fffdf8] p-6 shadow-sm ring-1 ring-[#e6dcc8]">
         <p className="text-center text-xs uppercase tracking-wide text-[#6a0938]">
           Secretaría de Educación y Cultura · Sonora
@@ -59,8 +81,16 @@ function LoginForm() {
             />
           </label>
           {error && <p className="text-sm text-red-700">{error}</p>}
-          <button type="submit" className="w-full rounded-xl bg-[#6a0938] py-3 font-semibold text-white">
-            Entrar
+          <button
+            type="submit"
+            disabled={busy}
+            className="flex h-12 w-full cursor-pointer items-center justify-center rounded-xl bg-[#6a0938] font-semibold text-white disabled:opacity-90"
+          >
+            {busy ? (
+              <span className="h-6 w-6 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-label="Entrando" />
+            ) : (
+              "Entrar"
+            )}
           </button>
         </form>
       </div>

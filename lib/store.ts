@@ -136,26 +136,81 @@ async function putBackup(path: string, data: unknown) {
   await sb().storage.from(BUCKET).upload(path, body, { upsert: true, contentType: "application/json" });
 }
 
+async function reassignTeacher(fromId: string, toId: string) {
+  if (fromId === toId) return;
+  await sb().from("folder_reviews").update({ teacher_id: toId }).eq("teacher_id", fromId);
+  await sb().from("class_visits").update({ teacher_id: toId }).eq("teacher_id", fromId);
+  await sb().from("drafts").delete().eq("teacher_id", fromId);
+  const { data: keepAck } = await sb().from("acknowledgments").select("*").eq("teacher_id", toId).maybeSingle();
+  const { data: fromAck } = await sb().from("acknowledgments").select("*").eq("teacher_id", fromId).maybeSingle();
+  await sb().from("acknowledgments").delete().eq("teacher_id", fromId);
+  if (fromAck && !keepAck) {
+    const row = fromAck as Record<string, unknown>;
+    await sb().from("acknowledgments").insert({ ...row, teacher_id: toId });
+  }
+  await sb().from("teachers").delete().eq("id", fromId);
+}
+
+function teacherKey(name: string, schoolId: string) {
+  return `${schoolId}|${name.trim().toLowerCase().replace(/\s+/g, " ")}`;
+}
+
+async function mergeDuplicateTeachers() {
+  const { data } = await sb().from("teachers").select("*");
+  const groups = new Map<string, { id: string; created_at: string }[]>();
+  for (const r of data ?? []) {
+    const key = teacherKey(String(r.name ?? ""), String(r.school_id ?? ""));
+    const list = groups.get(key) ?? [];
+    list.push({ id: String(r.id), created_at: String(r.created_at ?? "") });
+    groups.set(key, list);
+  }
+  for (const list of groups.values()) {
+    if (list.length < 2) continue;
+    list.sort((a, b) => a.created_at.localeCompare(b.created_at));
+    const keep = list[0];
+    for (const dup of list.slice(1)) await reassignTeacher(dup.id, keep.id);
+  }
+}
+
 export async function ensureSchools(): Promise<School[]> {
   const { data } = await sb().from("schools").select("*");
-  if (data?.length) return data.map(mapSchool).sort((a, b) => a.shortName.localeCompare(b.shortName));
-  const created: School[] = SCHOOLS.map((s) => ({
-    id: crypto.randomUUID(),
-    name: s.name,
-    shortName: s.shortName,
-    cct: s.cct,
-  }));
-  await sb()
-    .from("schools")
-    .insert(
-      created.map((s) => ({
-        id: s.id,
-        name: s.name,
-        short_name: s.shortName,
-        cct: s.cct,
-      }))
-    );
-  return created.sort((a, b) => a.shortName.localeCompare(b.shortName));
+  let rows = (data ?? []).map((r) => mapSchool(r as Record<string, unknown>));
+  if (!rows.length) {
+    rows = SCHOOLS.map((s) => ({
+      id: crypto.randomUUID(),
+      name: s.name,
+      shortName: s.shortName,
+      cct: s.cct,
+    }));
+    await sb()
+      .from("schools")
+      .insert(
+        rows.map((s) => ({
+          id: s.id,
+          name: s.name,
+          short_name: s.shortName,
+          cct: s.cct,
+        }))
+      );
+    return rows.sort((a, b) => a.shortName.localeCompare(b.shortName, "es"));
+  }
+
+  const byCct = new Map<string, School[]>();
+  for (const s of rows) {
+    const k = s.cct.trim().toUpperCase();
+    byCct.set(k, [...(byCct.get(k) ?? []), s]);
+  }
+  const unique: School[] = [];
+  for (const group of byCct.values()) {
+    const keep = group[0];
+    unique.push(keep);
+    for (const dup of group.slice(1)) {
+      await sb().from("teachers").update({ school_id: keep.id }).eq("school_id", dup.id);
+      await sb().from("schools").delete().eq("id", dup.id);
+    }
+  }
+  await mergeDuplicateTeachers();
+  return unique.sort((a, b) => a.shortName.localeCompare(b.shortName, "es"));
 }
 
 export async function listSchools() {
@@ -189,9 +244,14 @@ export async function createTeacher(input: {
   schoolId: string;
   actor?: string;
 }) {
+  const name = input.name.trim();
+  const existing = (await listTeachers(input.schoolId)).find(
+    (t) => teacherKey(t.name, t.schoolId) === teacherKey(name, input.schoolId)
+  );
+  if (existing) return existing;
   const teacher: Teacher = {
     id: crypto.randomUUID(),
-    name: input.name,
+    name,
     disciplina: input.disciplina,
     turno: input.turno,
     schoolId: input.schoolId,

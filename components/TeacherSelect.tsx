@@ -31,6 +31,7 @@ export function TeacherSelect({
   const [newName, setNewName] = useState("");
   const [newDisc, setNewDisc] = useState("");
   const [newTurno, setNewTurno] = useState("Matutino");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetch("/api/schools")
@@ -54,7 +55,8 @@ export function TeacherSelect({
   }, [teacherId, teachers, onTeacherMeta]);
 
   async function createTeacher() {
-    if (!schoolId || !newName.trim()) return;
+    if (!schoolId || !newName.trim() || saving) return;
+    setSaving(true);
     const res = await fetch("/api/teachers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -66,7 +68,12 @@ export function TeacherSelect({
       }),
     });
     const t = await res.json();
-    setTeachers((prev) => [...prev, t].sort((a, b) => a.name.localeCompare(b.name)));
+    setSaving(false);
+    if (!res.ok) return;
+    setTeachers((prev) => {
+      if (prev.some((x) => x.id === t.id)) return prev;
+      return [...prev, t].sort((a, b) => a.name.localeCompare(b.name));
+    });
     onTeacher(t.id);
     setCreating(false);
     setNewName("");
@@ -128,7 +135,8 @@ export function TeacherSelect({
               <button
                 type="button"
                 onClick={createTeacher}
-                className="rounded-lg bg-[#6a0938] px-3 py-2 text-sm text-white"
+                disabled={saving}
+                className="rounded-lg bg-[#6a0938] px-3 py-2 text-sm text-white disabled:opacity-60"
               >
                 Guardar docente
               </button>

@@ -22,6 +22,7 @@ export default function MaestrosPage() {
   const [disciplina, setDisciplina] = useState("");
   const [turno, setTurno] = useState("Matutino");
   const [role, setRole] = useState("atp");
+  const [saving, setSaving] = useState(false);
 
   async function load(sid = schoolId) {
     const [s, t] = await Promise.all([
@@ -42,7 +43,8 @@ export default function MaestrosPage() {
 
   async function add(e: React.FormEvent) {
     e.preventDefault();
-    if (!schoolId || !name.trim()) return;
+    if (!schoolId || !name.trim() || saving) return;
+    setSaving(true);
     await fetch("/api/teachers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -50,6 +52,7 @@ export default function MaestrosPage() {
     });
     setName("");
     setDisciplina("");
+    setSaving(false);
     load(schoolId);
   }
 
@@ -88,7 +91,9 @@ export default function MaestrosPage() {
           onChange={(e) => setDisciplina(e.target.value)}
         />
         <Select value={turno} onChange={setTurno} options={TURNO_OPTIONS} />
-        <button className="rounded-lg bg-[#6a0938] py-2 text-white">Agregar</button>
+        <button type="submit" disabled={saving} className="rounded-lg bg-[#6a0938] py-2 text-white disabled:opacity-60">
+          {saving ? "Guardando…" : "Agregar"}
+        </button>
       </form>
       <ul className="space-y-2">
         {teachers.map((t) => (

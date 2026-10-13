@@ -6,6 +6,7 @@ import { Bar } from "@/components/Bar";
 import { ShareActions } from "@/components/ShareActions";
 import { Loading } from "@/components/Loading";
 import { ACK_CLASS, ACK_LABELS } from "@/lib/ack-labels";
+import { ViewSignatureButton } from "@/components/ViewSignature";
 
 type Stats = {
   zona: { teachers: number; folderReviews: number; classVisits: number; folderPct: number; visitPct: number };
@@ -25,7 +26,15 @@ type Stats = {
 export default function ResultadosPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [teachers, setTeachers] = useState<{ id: string; name: string; school: { shortName: string } }[]>([]);
-  const [acks, setAcks] = useState<Record<string, keyof typeof ACK_LABELS>>({});
+  const [acks, setAcks] = useState<
+    Record<
+      string,
+      {
+        status: keyof typeof ACK_LABELS;
+        ack: { agreed: boolean; firmaDataUrl: string; comentario: string; signedAt: string } | null;
+      }
+    >
+  >({});
   const [alerts, setAlerts] = useState<{ text: string }[]>([]);
   const [schoolFilter, setSchoolFilter] = useState("");
   const [ackFilter, setAckFilter] = useState("");
@@ -39,9 +48,17 @@ export default function ResultadosPage() {
       .then(setTeachers);
     fetch("/api/acknowledgments")
       .then((r) => r.json())
-      .then((rows: { teacherId: string; status: keyof typeof ACK_LABELS }[]) => {
-        setAcks(Object.fromEntries(rows.map((r) => [r.teacherId, r.status])));
-      });
+      .then(
+        (
+          rows: {
+            teacherId: string;
+            status: keyof typeof ACK_LABELS;
+            ack: { agreed: boolean; firmaDataUrl: string; comentario: string; signedAt: string } | null;
+          }[]
+        ) => {
+          setAcks(Object.fromEntries(rows.map((r) => [r.teacherId, { status: r.status, ack: r.ack }])));
+        }
+      );
     fetch("/api/alerts")
       .then((r) => r.json())
       .then((d) => setAlerts(d.alerts ?? []));
@@ -142,21 +159,29 @@ export default function ResultadosPage() {
       <ul className="space-y-2">
         {teachers
           .filter((t) => !schoolFilter || t.school.shortName === schoolFilter)
-          .filter((t) => !ackFilter || acks[t.id] === ackFilter)
+          .filter((t) => !ackFilter || acks[t.id]?.status === ackFilter)
           .map((t) => (
-          <li key={t.id}>
-            <Link
-              href={`/resultados/maestro/${t.id}`}
-              className="block rounded-xl bg-[#fffdf8] px-4 py-3 ring-1 ring-[#e6dcc8]"
-            >
+          <li key={t.id} className="flex flex-wrap items-center gap-2 rounded-xl bg-[#fffdf8] px-4 py-3 ring-1 ring-[#e6dcc8]">
+            <Link href={`/resultados/maestro/${t.id}`} className="min-w-0 flex-1">
               {t.name}{" "}
               <span className="text-sm text-[#5a6b5e]">· {t.school.shortName}</span>
               {acks[t.id] && (
-                <span className={`ml-2 rounded-full px-2 py-0.5 text-xs ${ACK_CLASS[acks[t.id]]}`}>
-                  {ACK_LABELS[acks[t.id]]}
+                <span className={`ml-2 rounded-full px-2 py-0.5 text-xs ${ACK_CLASS[acks[t.id].status]}`}>
+                  {ACK_LABELS[acks[t.id].status]}
                 </span>
               )}
             </Link>
+            {acks[t.id]?.ack?.firmaDataUrl && (
+              <ViewSignatureButton
+                signature={{
+                  image: acks[t.id].ack!.firmaDataUrl,
+                  agreed: acks[t.id].ack!.agreed,
+                  signedAt: acks[t.id].ack!.signedAt,
+                  comment: acks[t.id].ack!.comentario,
+                  teacherName: t.name,
+                }}
+              />
+            )}
           </li>
         ))}
       </ul>

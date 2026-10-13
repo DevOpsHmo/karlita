@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { PeriodBar } from "@/components/PeriodBar";
-
 const links = [
   { href: "/", label: "Inicio" },
   { href: "/maestros", label: "Maestros" },
@@ -56,7 +54,6 @@ export function Nav() {
         </nav>
       </div>
     </header>
-      <PeriodBar />
     </div>
   );
 }

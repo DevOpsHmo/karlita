@@ -76,21 +76,20 @@ export default function MaestroPage() {
           {ACK_LABELS[ackRow.status]}
         </p>
       )}
-      {ackRow?.ack && (
-        <div className="mb-4 rounded-2xl bg-[#fffdf8] p-4 text-sm ring-1 ring-[#e6dcc8]">
-          <p>
-            El docente {ackRow.ack.nombreFirma} firmó el {new Date(ackRow.ack.signedAt).toLocaleString("es-MX")}:{" "}
-            <strong>{ackRow.ack.agreed ? "Sí, de acuerdo" : "No de acuerdo"}</strong>
-          </p>
-          {ackRow.ack.comentario && <p className="mt-1">{ackRow.ack.comentario}</p>}
-          {ackRow.ack.firmaDataUrl && (
-            <img src={ackRow.ack.firmaDataUrl} alt="Firma del docente" className="mt-2 max-h-20 rounded border" />
-          )}
-        </div>
-      )}
       <ShareActions
         sharePath={`/api/teachers/${id}/share`}
         includeAckLink
+        signature={
+          ackRow?.ack?.firmaDataUrl
+            ? {
+                image: ackRow.ack.firmaDataUrl,
+                agreed: ackRow.ack.agreed,
+                signedAt: ackRow.ack.signedAt,
+                comment: ackRow.ack.comentario,
+                teacherName: teacher.name,
+              }
+            : null
+        }
         message={`Hola ${teacher.name}. Supervisión de Zona X le comparte el resumen de su evaluación (ciclo 2026-2027).`}
       />
       <div className="no-print mb-4 flex flex-wrap gap-2">

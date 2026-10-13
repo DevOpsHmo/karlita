@@ -9,10 +9,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!teacher) return NextResponse.json({ error: "Enlace no válido" }, { status: 404 });
   const body = await request.json();
   const agreed = body.agreed === true || body.agreed === "si";
-  const nombreFirma = String(body.nombreFirma ?? "").trim();
+  const nombreFirma = String(body.nombreFirma ?? "").trim() || teacher.name;
   const firmaDataUrl = String(body.firmaDataUrl ?? "");
   const comentario = String(body.comentario ?? "").trim();
-  if (!nombreFirma) return NextResponse.json({ error: "Escriba su nombre para firmar." }, { status: 400 });
   if (!firmaDataUrl.startsWith("data:image")) {
     return NextResponse.json({ error: "Firme en el recuadro." }, { status: 400 });
   }

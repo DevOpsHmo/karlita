@@ -86,37 +86,12 @@ function PieView({ bars }: { bars: ChartBar[] }) {
   );
 }
 
-function PointsView({ bars }: { bars: ChartBar[] }) {
-  const total = bars.reduce((a, b) => a + b.count, 0) || 1;
-  return (
-    <div className="mb-3 space-y-2">
-      {bars.map((b) => {
-        const pct = Math.round((b.count / total) * 100);
-        return (
-          <div key={b.label} className="relative h-8 rounded bg-[#f4f1ea]">
-            <span className="absolute left-2 top-1.5 text-xs">{b.label}</span>
-            <span
-              className="absolute top-1.5 h-5 w-5 rounded-full ring-2 ring-white"
-              style={{ left: `calc(${pct}% - 10px)`, background: HEX[b.color ?? "green"] }}
-              title={`${pct}%`}
-            />
-            <span className="absolute right-2 top-1.5 text-xs font-semibold">
-              {b.count} · {pct}%
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 function Block({ bars, kind, title }: { bars: ChartBar[]; kind: ChartKind; title?: string }) {
   return (
     <div className="mb-3">
       {title && <p className="mb-1 text-sm font-medium text-[#6a0938]">{title}</p>}
       {kind === "table" && <TableView bars={bars} />}
       {kind === "pie" && <PieView bars={bars} />}
-      {kind === "points" && <PointsView bars={bars} />}
       {kind === "bars" &&
         bars.map((bar) => <Row key={bar.label} bar={bar} total={bars.reduce((a, b) => a + b.count, 0)} />)}
     </div>

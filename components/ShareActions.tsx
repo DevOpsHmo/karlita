@@ -2,17 +2,20 @@
 
 import { useState } from "react";
 import { publicUrl } from "@/lib/public-origin";
+import { ViewSignatureButton, type SignaturePreview } from "@/components/ViewSignature";
 
 export function ShareActions({
   sharePath,
   message,
   showPrint = true,
   includeAckLink = false,
+  signature,
 }: {
   sharePath: string;
   message: string;
   showPrint?: boolean;
   includeAckLink?: boolean;
+  signature?: SignaturePreview | null;
 }) {
   const [busy, setBusy] = useState(false);
 
@@ -102,13 +105,13 @@ export function ShareActions({
   }
 
   return (
-    <div className="no-print mb-4 flex flex-wrap gap-2">
+    <div className="no-print mb-3 flex flex-wrap items-center gap-1.5 sm:mb-4 sm:gap-2">
       {showPrint && (
         <button
           type="button"
           onClick={downloadPdf}
           disabled={busy}
-          className="cursor-pointer rounded-lg bg-[#6a0938] px-4 py-2 text-white disabled:cursor-wait"
+          className="cursor-pointer rounded-md bg-[#6a0938] px-2.5 py-1 text-[11px] leading-tight text-white disabled:cursor-wait sm:rounded-lg sm:px-4 sm:py-2 sm:text-sm"
         >
           {busy ? "Preparando…" : "Descargar PDF"}
         </button>
@@ -117,11 +120,12 @@ export function ShareActions({
         type="button"
         onClick={send}
         disabled={busy}
-        className="cursor-pointer rounded-lg px-4 py-2 font-medium disabled:cursor-wait"
+        className="cursor-pointer rounded-md px-2.5 py-1 text-[11px] font-medium leading-tight disabled:cursor-wait sm:rounded-lg sm:px-4 sm:py-2 sm:text-sm"
         style={{ backgroundColor: "#25D366", color: "#ffffff" }}
       >
         {busy ? "Preparando…" : "Enviar por WhatsApp"}
       </button>
+      {includeAckLink && <ViewSignatureButton signature={signature} />}
     </div>
   );
 }
@@ -131,7 +135,7 @@ export function PrintOnly() {
     <button
       type="button"
       onClick={() => window.print()}
-      className="no-print mb-4 cursor-pointer rounded-lg bg-[#6a0938] px-4 py-2 text-white"
+      className="no-print mb-4 cursor-pointer rounded-md bg-[#6a0938] px-2.5 py-1 text-[11px] text-white sm:rounded-lg sm:px-4 sm:py-2 sm:text-sm"
     >
       Descargar PDF
     </button>

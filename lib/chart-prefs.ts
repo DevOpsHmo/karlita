@@ -1,10 +1,9 @@
-export type ChartKind = "bars" | "table" | "pie" | "points";
+export type ChartKind = "bars" | "table" | "pie";
 
 export const CHART_KIND_LABELS: Record<ChartKind, string> = {
   bars: "Barras",
   table: "Tabla",
   pie: "Pastel",
-  points: "Puntos",
 };
 
 const KEY = "zona-chart-prefs";
@@ -24,10 +23,12 @@ export function loadChartPrefs(): ChartPrefs {
     const raw = localStorage.getItem(KEY);
     if (!raw) return emptyChartPrefs();
     const parsed = JSON.parse(raw) as ChartPrefs;
-    return {
-      defaultKind: parsed.defaultKind ?? "bars",
-      byId: parsed.byId ?? {},
-    };
+    const def = isChartKind(parsed.defaultKind) ? parsed.defaultKind : "bars";
+    const byId: Record<string, ChartKind> = {};
+    for (const [id, k] of Object.entries(parsed.byId ?? {})) {
+      if (isChartKind(k)) byId[id] = k;
+    }
+    return { defaultKind: def, byId };
   } catch {
     return emptyChartPrefs();
   }
@@ -43,5 +44,5 @@ export function kindFor(prefs: ChartPrefs, id: string): ChartKind {
 }
 
 export function isChartKind(v: unknown): v is ChartKind {
-  return v === "bars" || v === "table" || v === "pie" || v === "points";
+  return v === "bars" || v === "table" || v === "pie";
 }
