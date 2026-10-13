@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef } from "react";
 
@@ -18,7 +18,7 @@ export function SignaturePad({ onChange }: { onChange: (dataUrl: string) => void
     canvas.width = rect.width * 2;
     canvas.height = rect.height * 2;
     g.scale(2, 2);
-    g.strokeStyle = "#123f28";
+    g.strokeStyle = "#6a0938";
     g.lineWidth = 2;
     g.lineCap = "round";
 
@@ -67,9 +67,9 @@ export function SignaturePad({ onChange }: { onChange: (dataUrl: string) => void
     <div>
       <canvas
         ref={canvasRef}
-        className="h-36 w-full touch-none rounded-lg border border-[#d9c9a3] bg-white"
+        className="h-52 w-full touch-none rounded-lg border border-[#d9c9a3] bg-white sm:h-40"
       />
-      <button type="button" onClick={clear} className="mt-1 text-sm text-[#1b5e3b] underline">
+      <button type="button" onClick={clear} className="mt-1 text-sm text-[#6a0938] underline">
         Borrar firma
       </button>
     </div>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useId, useRef, useState } from "react";
 
@@ -65,12 +65,12 @@ export function Select({
               : "border-[#d9c9a3] hover:border-[#c4a35a]"
         }`}
       >
-        <span className={selected ? "font-medium text-[#123f28]" : "text-[#7a8a7e]"}>
+        <span className={selected ? "font-medium text-[#6a0938]" : "text-[#7a8a7e]"}>
           {selected?.label ?? placeholder}
         </span>
         <svg
           viewBox="0 0 20 20"
-          className={`h-4 w-4 shrink-0 text-[#1b5e3b] transition ${open ? "rotate-180" : ""}`}
+          className={`h-4 w-4 shrink-0 text-[#6a0938] transition ${open ? "rotate-180" : ""}`}
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
@@ -82,7 +82,7 @@ export function Select({
         <ul
           id={listId}
           role="listbox"
-          className="absolute z-50 mt-1 max-h-64 w-full overflow-auto rounded-xl border border-[#e6dcc8] bg-[#fffdf8] py-1 shadow-xl shadow-[#123f28]/10"
+          className="absolute z-50 mt-1 max-h-64 w-full overflow-auto rounded-xl border border-[#e6dcc8] bg-[#fffdf8] py-1 shadow-xl shadow-[#6a0938]/10"
         >
           {options.length === 0 && (
             <li className="px-3 py-2 text-sm text-[#7a8a7e]">Sin opciones</li>
@@ -96,7 +96,7 @@ export function Select({
                   role="option"
                   aria-selected={active}
                   className={`flex w-full items-center justify-between px-3 py-2.5 text-left text-sm transition ${
-                    active ? "bg-[#1b5e3b] text-white" : "text-[#123f28] hover:bg-[#f4efe3]"
+                    active ? "bg-[#6a0938] text-white" : "text-[#6a0938] hover:bg-[#f4efe3]"
                   }`}
                   onClick={() => {
                     onChange(opt.value);

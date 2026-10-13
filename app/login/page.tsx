@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, Suspense } from "react";
 import { Select } from "@/components/Select";
@@ -30,10 +30,10 @@ function LoginForm() {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4">
       <div className="rounded-2xl bg-[#fffdf8] p-6 shadow-sm ring-1 ring-[#e6dcc8]">
-        <p className="text-center text-xs uppercase tracking-wide text-[#1b5e3b]">
+        <p className="text-center text-xs uppercase tracking-wide text-[#6a0938]">
           Secretaría de Educación y Cultura · Sonora
         </p>
-        <h1 className="mt-2 text-center text-xl font-bold text-[#123f28]">Supervisión de Zona X</h1>
+        <h1 className="mt-2 text-center text-xl font-bold text-[#6a0938]">Supervisión de Zona X</h1>
         <p className="mb-4 text-center text-sm text-[#5a6b5e]">A.T.P. Karla Karina Sánchez Avilés</p>
         <form onSubmit={onSubmit} className="space-y-3">
           <label className="block text-sm">
@@ -59,7 +59,7 @@ function LoginForm() {
             />
           </label>
           {error && <p className="text-sm text-red-700">{error}</p>}
-          <button type="submit" className="w-full rounded-xl bg-[#1b5e3b] py-3 font-semibold text-white">
+          <button type="submit" className="w-full rounded-xl bg-[#6a0938] py-3 font-semibold text-white">
             Entrar
           </button>
         </form>

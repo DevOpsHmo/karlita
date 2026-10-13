@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -21,6 +21,7 @@ export default function MaestrosPage() {
   const [name, setName] = useState("");
   const [disciplina, setDisciplina] = useState("");
   const [turno, setTurno] = useState("Matutino");
+  const [role, setRole] = useState("atp");
 
   async function load(sid = schoolId) {
     const [s, t] = await Promise.all([
@@ -33,6 +34,9 @@ export default function MaestrosPage() {
 
   useEffect(() => {
     load();
+    fetch("/api/me")
+      .then((r) => r.json())
+      .then((d) => setRole(d.role));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -57,7 +61,7 @@ export default function MaestrosPage() {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
-      <h1 className="mb-4 text-2xl font-bold text-[#123f28]">Maestros</h1>
+      <h1 className="mb-4 text-2xl font-bold text-[#6a0938]">Maestros</h1>
       <form onSubmit={add} className="mb-6 grid gap-2 rounded-2xl bg-[#fffdf8] p-4 ring-1 ring-[#e6dcc8] sm:grid-cols-2">
         <Select
           className="sm:col-span-2"
@@ -84,7 +88,7 @@ export default function MaestrosPage() {
           onChange={(e) => setDisciplina(e.target.value)}
         />
         <Select value={turno} onChange={setTurno} options={TURNO_OPTIONS} />
-        <button className="rounded-lg bg-[#1b5e3b] py-2 text-white">Agregar</button>
+        <button className="rounded-lg bg-[#6a0938] py-2 text-white">Agregar</button>
       </form>
       <ul className="space-y-2">
         {teachers.map((t) => (
@@ -96,12 +100,14 @@ export default function MaestrosPage() {
               </p>
             </div>
             <div className="flex gap-3 text-sm">
-              <Link className="text-[#1b5e3b] underline" href={`/resultados/maestro/${t.id}`}>
+              <Link className="text-[#6a0938] underline" href={`/resultados/maestro/${t.id}`}>
                 Ficha
               </Link>
-              <button type="button" className="text-red-700" onClick={() => remove(t.id)}>
-                Eliminar
-              </button>
+              {role === "supervision" && (
+                <button type="button" className="cursor-pointer text-red-700" onClick={() => remove(t.id)}>
+                  Eliminar
+                </button>
+              )}
             </div>
           </li>
         ))}

@@ -1,10 +1,18 @@
-import type { ChartBar, ChartCard } from "@/lib/item-stats";
+﻿import type { ChartBar, ChartCard } from "@/lib/item-stats";
+import { CHART_KIND_LABELS, type ChartKind } from "@/lib/chart-prefs";
+
+const HEX: Record<NonNullable<ChartBar["color"]>, string> = {
+  yes: "#6a0938",
+  no: "#b4533a",
+  gold: "#c4a35a",
+  green: "#6a0938",
+};
 
 const COLORS: Record<NonNullable<ChartBar["color"]>, string> = {
-  yes: "bg-[#1b5e3b]",
+  yes: "bg-[#6a0938]",
   no: "bg-[#b4533a]",
   gold: "bg-[#c4a35a]",
-  green: "bg-[#2d6a4f]",
+  green: "bg-[#6a0938]",
 };
 
 function Row({ bar, total }: { bar: ChartBar; total: number }) {
@@ -27,7 +35,103 @@ function Row({ bar, total }: { bar: ChartBar; total: number }) {
   );
 }
 
-export function ItemChart({ card }: { card: ChartCard }) {
+function TableView({ bars }: { bars: ChartBar[] }) {
+  const total = bars.reduce((a, b) => a + b.count, 0) || 1;
+  return (
+    <table className="mb-2 w-full text-sm">
+      <thead>
+        <tr className="border-b border-[#e6dcc8] text-left">
+          <th className="py-1">Opción</th>
+          <th className="py-1">Conteo</th>
+          <th className="py-1">%</th>
+        </tr>
+      </thead>
+      <tbody>
+        {bars.map((b) => (
+          <tr key={b.label} className="border-b border-[#f0e6d4]">
+            <td className="py-1">{b.label}</td>
+            <td>{b.count}</td>
+            <td>{Math.round((b.count / total) * 100)}%</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function PieView({ bars }: { bars: ChartBar[] }) {
+  const total = bars.reduce((a, b) => a + b.count, 0);
+  if (!total) return <p className="text-sm text-[#5a6b5e]">Sin datos.</p>;
+  let acc = 0;
+  const stops = bars.map((b) => {
+    const start = acc;
+    acc += (b.count / total) * 100;
+    return `${HEX[b.color ?? "green"]} ${start}% ${acc}%`;
+  });
+  return (
+    <div className="mb-3 flex flex-wrap items-center gap-4">
+      <div
+        className="h-28 w-28 shrink-0 rounded-full"
+        style={{ background: `conic-gradient(${stops.join(", ")})` }}
+      />
+      <ul className="text-sm">
+        {bars.map((b) => (
+          <li key={b.label} className="flex items-center gap-2">
+            <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: HEX[b.color ?? "green"] }} />
+            {b.label}: {b.count} · {Math.round((b.count / total) * 100)}%
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function PointsView({ bars }: { bars: ChartBar[] }) {
+  const total = bars.reduce((a, b) => a + b.count, 0) || 1;
+  return (
+    <div className="mb-3 space-y-2">
+      {bars.map((b) => {
+        const pct = Math.round((b.count / total) * 100);
+        return (
+          <div key={b.label} className="relative h-8 rounded bg-[#f4f1ea]">
+            <span className="absolute left-2 top-1.5 text-xs">{b.label}</span>
+            <span
+              className="absolute top-1.5 h-5 w-5 rounded-full ring-2 ring-white"
+              style={{ left: `calc(${pct}% - 10px)`, background: HEX[b.color ?? "green"] }}
+              title={`${pct}%`}
+            />
+            <span className="absolute right-2 top-1.5 text-xs font-semibold">
+              {b.count} · {pct}%
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function Block({ bars, kind, title }: { bars: ChartBar[]; kind: ChartKind; title?: string }) {
+  return (
+    <div className="mb-3">
+      {title && <p className="mb-1 text-sm font-medium text-[#6a0938]">{title}</p>}
+      {kind === "table" && <TableView bars={bars} />}
+      {kind === "pie" && <PieView bars={bars} />}
+      {kind === "points" && <PointsView bars={bars} />}
+      {kind === "bars" &&
+        bars.map((bar) => <Row key={bar.label} bar={bar} total={bars.reduce((a, b) => a + b.count, 0)} />)}
+    </div>
+  );
+}
+
+export function ItemChart({
+  card,
+  kind = "bars",
+  onKind,
+}: {
+  card: ChartCard;
+  kind?: ChartKind;
+  onKind?: (id: string, kind: ChartKind) => void;
+}) {
   if (card.kind === "text") {
     return (
       <article className="item-chart rounded-2xl bg-[#fffdf8] p-4 ring-1 ring-[#e6dcc8]">
@@ -48,24 +152,45 @@ export function ItemChart({ card }: { card: ChartCard }) {
 
   return (
     <article className="item-chart rounded-2xl bg-[#fffdf8] p-4 ring-1 ring-[#e6dcc8]">
-      <h4 className="font-semibold">{card.title}</h4>
-      <p className="mb-3 text-xs text-[#5a6b5e]">{card.responses} respuestas</p>
-      {card.groups?.map((g) => {
-        const total = g.bars.reduce((a, b) => a + b.count, 0);
-        return (
-          <div key={g.name} className="mb-3">
-            <p className="mb-1 text-sm font-medium text-[#123f28]">{g.name}</p>
-            {g.bars.map((bar) => (
-              <Row key={bar.label} bar={bar} total={total} />
-            ))}
-          </div>
-        );
-      })}
-      {card.bars &&
-        (() => {
-          const total = card.bars.reduce((a, b) => a + b.count, 0);
-          return card.bars.map((bar) => <Row key={bar.label} bar={bar} total={total} />);
-        })()}
+      <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h4 className="font-semibold">{card.title}</h4>
+          <p className="text-xs text-[#5a6b5e]">
+            {card.responses} respuestas
+            {card.dates?.length
+              ? ` · ${card.dates.map((d) => new Date(d + "T12:00:00").toLocaleDateString("es-MX")).join(", ")}`
+              : ""}
+          </p>
+        </div>
+        {onKind && (
+          <label className="no-print text-xs">
+            Gráfica{" "}
+            <select
+              className="rounded border border-[#d9c9a3] px-1 py-0.5"
+              value={kind}
+              onChange={(e) => onKind(card.id, e.target.value as ChartKind)}
+            >
+              {(Object.keys(CHART_KIND_LABELS) as ChartKind[]).map((k) => (
+                <option key={k} value={k}>
+                  {CHART_KIND_LABELS[k]}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
+      {card.groups?.map((g) => (
+        <Block key={g.name} bars={g.bars} kind={kind} title={g.name} />
+      ))}
+      {card.bars && <Block bars={card.bars} kind={kind} />}
+      {!!card.schoolBreakdown?.length && (
+        <div className="mt-3 border-t border-[#e6dcc8] pt-3">
+          <p className="mb-2 text-xs font-semibold text-[#6a0938]">Por escuela</p>
+          {card.schoolBreakdown.map((s) => (
+            <Block key={s.name} bars={s.bars} kind={kind} title={s.name} />
+          ))}
+        </div>
+      )}
     </article>
   );
 }

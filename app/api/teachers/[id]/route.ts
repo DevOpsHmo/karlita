@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isSupervision } from "@/lib/roles";
 import { deleteTeacher, getTeacher, updateTeacher } from "@/lib/store";
+import { currentUser } from "@/lib/supabase/route";
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -22,7 +24,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 }
 
 export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const user = await currentUser();
+  if (!isSupervision(user?.email)) {
+    return NextResponse.json({ error: "Solo supervisión puede eliminar maestros" }, { status: 403 });
+  }
   const { id } = await params;
-  await deleteTeacher(id);
+  await deleteTeacher(id, user?.email);
   return NextResponse.json({ ok: true });
 }

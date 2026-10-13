@@ -5,6 +5,7 @@ import {
   QUALITY,
   type VisitPayload,
 } from "./visit-form";
+import { visitPeriodFromDate, type Period } from "./periods";
 import { listClassVisits, listFolderReviews, type RecordRow } from "./store";
 
 export type ChartBar = { label: string; count: number; color?: "yes" | "no" | "gold" | "green" };
@@ -16,6 +17,8 @@ export type ChartCard = {
   bars?: ChartBar[];
   texts?: string[];
   responses: number;
+  schoolBreakdown?: { name: string; bars: ChartBar[] }[];
+  dates?: string[];
 };
 
 function parseFolder(row: RecordRow): FolderPayload | null {
@@ -47,15 +50,16 @@ function barsFrom(map: Record<string, number>, order: string[], colors?: Record<
   }));
 }
 
-export function folderCards(rows: RecordRow[]): ChartCard[] {
-  const payloads = rows.map(parseFolder).filter(Boolean) as FolderPayload[];
+export function folderCards(rows: RecordRow[], period?: Period | null): ChartCard[] {
+  const periods = period ? [Number(period) as 1 | 2 | 3] : ([1, 2, 3] as const);
   return FOLDER_ITEMS.map((item) => {
-    const groups = ([1, 2, 3] as const).map((n) => {
+    const groups = periods.map((n) => {
       const key = `p${n}` as "p1" | "p2" | "p3";
       let si = 0;
       let no = 0;
-      for (const p of payloads) {
-        const v = p.items?.[item.id]?.[key];
+      for (const row of rows) {
+        const p = parseFolder(row);
+        const v = p?.items?.[item.id]?.[key];
         if (v === "si") si += 1;
         else if (v === "no") no += 1;
       }
@@ -68,8 +72,41 @@ export function folderCards(rows: RecordRow[]): ChartCard[] {
       };
     });
     const responses = groups.reduce((a, g) => a + g.bars.reduce((b, x) => b + x.count, 0), 0);
-    return { id: item.id, title: item.label, kind: "bars", groups, responses };
+    const dates = [...new Set(rows.map((r) => r.createdAt.slice(0, 10)))].sort();
+    const schoolBreakdown = breakdownBySchool(rows, (row) => {
+      const p = parseFolder(row);
+      let si = 0;
+      let no = 0;
+      for (const n of periods) {
+        const v = p?.items?.[item.id]?.[`p${n}` as "p1" | "p2" | "p3"];
+        if (v === "si") si += 1;
+        else if (v === "no") no += 1;
+      }
+      return { si, no };
+    });
+    return { id: item.id, title: item.label, kind: "bars", groups, responses, dates, schoolBreakdown };
   });
+}
+
+function breakdownBySchool(
+  rows: RecordRow[],
+  count: (row: RecordRow) => { si: number; no: number }
+): { name: string; bars: ChartBar[] }[] {
+  const map = new Map<string, { si: number; no: number }>();
+  for (const row of rows) {
+    const name = row.teacher?.school?.shortName ?? "Escuela";
+    const cur = map.get(name) ?? { si: 0, no: 0 };
+    const addn = count(row);
+    map.set(name, { si: cur.si + addn.si, no: cur.no + addn.no });
+  }
+  if (map.size < 2) return [];
+  return [...map.entries()].map(([name, v]) => ({
+    name,
+    bars: [
+      { label: "Sí", count: v.si, color: "yes" as const },
+      { label: "No", count: v.no, color: "no" as const },
+    ],
+  }));
 }
 
 function yesNoCard(id: string, title: string, values: string[]): ChartCard {
@@ -121,6 +158,8 @@ function textCard(id: string, title: string, texts: string[]): ChartCard {
 
 export function visitCards(rows: RecordRow[]): { charts: ChartCard[]; texts: ChartCard[] } {
   const payloads = rows.map(parseVisit).filter(Boolean) as VisitPayload[];
+  const dates = [...new Set(rows.map((r) => (parseVisit(r)?.fecha || r.createdAt.slice(0, 10))))].filter(Boolean).sort();
+  const stamp = (card: ChartCard): ChartCard => ({ ...card, dates });
   const yn = (pick: (p: VisitPayload) => string) => payloads.map(pick);
 
   const charts: ChartCard[] = [
@@ -209,11 +248,18 @@ export function visitCards(rows: RecordRow[]): { charts: ChartCard[]; texts: Cha
     textCard("obsVisita", "Observaciones generales de la visita", payloads.map((p) => p.observacionesGenerales)),
   ];
 
-  return { charts, texts };
+  return { charts: charts.map(stamp), texts: texts.map(stamp) };
 }
 
-export async function computeItemStats(opts: { teacherId?: string | null; schoolId?: string | null }) {
-  const [folders, visits] = await Promise.all([listFolderReviews(opts), listClassVisits(opts)]);
+export async function computeItemStats(opts: {
+  teacherId?: string | null;
+  schoolId?: string | null;
+  period?: Period | null;
+}) {
+  let [folders, visits] = await Promise.all([listFolderReviews(opts), listClassVisits(opts)]);
+  if (opts.period) {
+    visits = visits.filter((v) => visitPeriodFromDate(parseVisit(v)?.fecha) === opts.period);
+  }
   const visit = visitCards(visits);
   const folderTexts = textCard(
     "obsCarpeta",
@@ -223,7 +269,8 @@ export async function computeItemStats(opts: { teacherId?: string | null; school
   return {
     folderReviews: folders.length,
     classVisits: visits.length,
-    carpetas: folderCards(folders),
+    empty: folders.length === 0 && visits.length === 0,
+    carpetas: folderCards(folders, opts.period),
     acompanamiento: visit.charts,
     textos: [...visit.texts, folderTexts],
   };

@@ -94,16 +94,16 @@ export default function MaestroPage() {
         message={`Hola ${teacher.name}. Supervisión de Zona X le comparte el resumen de su evaluación (ciclo 2026-2027).`}
       />
       <div className="no-print mb-4 flex flex-wrap gap-2">
-        <Link href={`/carpetas?teacher=${id}`} className="rounded-lg bg-[#c4a35a] px-4 py-2 text-[#123f28]">
+        <Link href={`/carpetas?teacher=${id}`} className="rounded-lg bg-[#c4a35a] px-4 py-2 text-[#6a0938]">
           Nueva carpeta
         </Link>
-        <Link href={`/acompanamiento?teacher=${id}`} className="rounded-lg bg-[#c4a35a] px-4 py-2 text-[#123f28]">
+        <Link href={`/acompanamiento?teacher=${id}`} className="rounded-lg bg-[#c4a35a] px-4 py-2 text-[#6a0938]">
           Nueva visita
         </Link>
       </div>
       <Bar label="Última revisión de carpetas (% Sí)" pct={folderPct} />
       <Bar label="Última observación de clase (% Sí)" pct={visitPct} />
-      <ItemStatsPanel fetchUrl={`/api/item-stats?scope=maestro&id=${id}`} />
+      <ItemStatsPanel emptyLabel="Aún no hay revisiones de este maestro." fetchUrl={`/api/item-stats?scope=maestro&id=${id}`} />
 
       {nos.length > 0 && (
         <section className="mt-4 rounded-2xl bg-[#fffdf8] p-4 ring-1 ring-[#e6dcc8]">
@@ -131,7 +131,7 @@ export default function MaestroPage() {
       <ul className="mt-2 space-y-1 text-sm">
         {folders.map((f) => (
           <li key={f.id}>
-            <Link className="text-[#1b5e3b] underline" href={`/carpetas/${f.id}`}>
+            <Link className="text-[#6a0938] underline" href={`/carpetas/${f.id}`}>
               {new Date(f.createdAt).toLocaleDateString("es-MX")} · {folderYesPercent(JSON.parse(f.payload) as FolderPayload).pct}% Sí
             </Link>
           </li>
@@ -142,7 +142,7 @@ export default function MaestroPage() {
       <ul className="mt-2 space-y-1 text-sm">
         {visits.map((v) => (
           <li key={v.id}>
-            <Link className="text-[#1b5e3b] underline" href={`/acompanamiento/${v.id}`}>
+            <Link className="text-[#6a0938] underline" href={`/acompanamiento/${v.id}`}>
               {new Date(v.createdAt).toLocaleDateString("es-MX")} · {visitYesPercent(JSON.parse(v.payload) as VisitPayload).pct}% Sí
             </Link>
           </li>

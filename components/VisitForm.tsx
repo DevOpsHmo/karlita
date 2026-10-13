@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -54,8 +54,11 @@ export function VisitForm({
     onRestore: (d) => {
       if (d.payload) setPayload({ ...emptyVisitPayload(), ...(d.payload as VisitPayload) });
       if (d.schoolId) setSchoolId(d.schoolId);
-      if (d.teacherId) setTeacherId(d.teacherId);
-      setDraftHint("Se recuperó el avance guardado de esta observación.");
+      setDraftHint("Se recuperó el avance de este maestro. Puede continuar donde se quedó.");
+    },
+    onNoDraft: () => {
+      setPayload((p) => ({ ...emptyVisitPayload(), asignatura: p.asignatura, turno: p.turno }));
+      setDraftHint("");
     },
   });
 
@@ -88,11 +91,12 @@ export function VisitForm({
     });
     setSaving(false);
     if (!res.ok) {
-      setError("No se pudo guardar.");
+      const json = await res.json().catch(() => ({}));
+      setError(json.error || "No se pudo guardar.");
       return;
     }
     const row = await res.json();
-    await clearDraft("visit");
+    await clearDraft("visit", teacherId);
     router.push(`/resultados/maestro/${row.teacherId}`);
   }
 
@@ -101,8 +105,12 @@ export function VisitForm({
   return (
     <form onSubmit={submit} className="mx-auto max-w-3xl space-y-4 px-4 py-6">
       <InstitutionHeader title="Acompañamiento y observación de clase" />
-      {draftHint && <p className="rounded-lg bg-[#eef6ef] px-3 py-2 text-sm text-[#1b5e3b]">{draftHint}</p>}
-      <p className="text-xs text-[#5a6b5e]">El avance se guarda solo, aunque se cierre la pestaña o se cambie de app.</p>
+      {draftHint && (
+        <p className="rounded-lg bg-[#c4a35a] px-3 py-3 text-sm font-semibold text-[#6a0938]">
+          Continuar donde me quedé: se recuperó el avance de esta observación.
+        </p>
+      )}
+      <p className="text-xs text-[#5a6b5e]">El avance se guarda solo por sección, aunque se cierre la pestaña o se cambie de app.</p>
       <div className={card}>
         <TeacherSelect
           schoolId={schoolId}
@@ -142,7 +150,7 @@ export function VisitForm({
         </div>
       </div>
 
-      <h2 className="text-lg font-bold text-[#123f28]">A. Previo</h2>
+      <h2 className="text-lg font-bold text-[#6a0938]">A. Previo</h2>
       <div className={card}>
         <div className="space-y-3">
           <div>
@@ -180,7 +188,7 @@ export function VisitForm({
         </div>
       </div>
 
-      <h2 className="text-lg font-bold text-[#123f28]">B. Apertura</h2>
+      <h2 className="text-lg font-bold text-[#6a0938]">B. Apertura</h2>
       <div className={card}>
         <p className="text-sm font-medium">Actividades que el docente realiza antes de iniciar su clase</p>
         <div className="mt-2 flex flex-col gap-2">
@@ -188,7 +196,7 @@ export function VisitForm({
             <label key={opt} className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
-                className="accent-[#1b5e3b]"
+                className="accent-[#6a0938]"
                 checked={payload.aperturaAntes.includes(opt)}
                 onChange={() => setPayload({ ...payload, aperturaAntes: toggle(payload.aperturaAntes, opt) })}
               />
@@ -215,7 +223,7 @@ export function VisitForm({
             <label key={opt} className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
-                className="accent-[#1b5e3b]"
+                className="accent-[#6a0938]"
                 checked={payload.aperturaInicio.includes(opt)}
                 onChange={() => setPayload({ ...payload, aperturaInicio: toggle(payload.aperturaInicio, opt) })}
               />
@@ -231,7 +239,7 @@ export function VisitForm({
         </div>
       </div>
 
-      <h2 className="text-lg font-bold text-[#123f28]">C. Desarrollo</h2>
+      <h2 className="text-lg font-bold text-[#6a0938]">C. Desarrollo</h2>
       <div className={card}>
         <label className="block text-sm font-medium">
           Estrategias didácticas (instrucciones, materiales, preguntas, equipos)
@@ -285,7 +293,7 @@ export function VisitForm({
         ))}
       </div>
 
-      <h2 className="text-lg font-bold text-[#123f28]">D. Cierre</h2>
+      <h2 className="text-lg font-bold text-[#6a0938]">D. Cierre</h2>
       <div className={card}>
         {CIERRE_ITEMS.map((c) => (
           <div key={c.id} className="mt-3 border-t border-[#efe6d4] pt-3 first:mt-0 first:border-0 first:pt-0">
@@ -315,7 +323,7 @@ export function VisitForm({
         ))}
       </div>
 
-      <h2 className="text-lg font-bold text-[#123f28]">E. Aspectos generales</h2>
+      <h2 className="text-lg font-bold text-[#6a0938]">E. Aspectos generales</h2>
       <div className={card}>
         {(
           [
@@ -331,7 +339,7 @@ export function VisitForm({
                   <input
                     type="radio"
                     name={key}
-                    className="accent-[#1b5e3b]"
+                    className="accent-[#6a0938]"
                     checked={payload[key] === q}
                     onChange={() => setPayload({ ...payload, [key]: q })}
                   />
@@ -348,7 +356,7 @@ export function VisitForm({
               <input
                 type="radio"
                 name="relacion"
-                className="accent-[#1b5e3b]"
+                className="accent-[#6a0938]"
                 checked={payload.relacion === q}
                 onChange={() => setPayload({ ...payload, relacion: q })}
               />
@@ -365,7 +373,7 @@ export function VisitForm({
         )}
       </div>
 
-      <h2 className="text-lg font-bold text-[#123f28]">F. Planeación</h2>
+      <h2 className="text-lg font-bold text-[#6a0938]">F. Planeación</h2>
       <div className={card}>
         {(
           [
@@ -391,7 +399,7 @@ export function VisitForm({
             <label key={opt} className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
-                className="accent-[#1b5e3b]"
+                className="accent-[#6a0938]"
                 checked={payload.seBasaEn.includes(opt)}
                 onChange={() => setPayload({ ...payload, seBasaEn: toggle(payload.seBasaEn, opt) })}
               />
@@ -405,7 +413,7 @@ export function VisitForm({
             <label key={opt} className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
-                className="accent-[#1b5e3b]"
+                className="accent-[#6a0938]"
                 checked={payload.actividadesTipo.includes(opt)}
                 onChange={() => setPayload({ ...payload, actividadesTipo: toggle(payload.actividadesTipo, opt) })}
               />
@@ -458,7 +466,7 @@ export function VisitForm({
             <label key={role} className="flex items-center gap-1 text-sm">
               <input
                 type="checkbox"
-                className="accent-[#1b5e3b]"
+                className="accent-[#6a0938]"
                 checked={payload.roles.includes(role)}
                 onChange={() => setPayload({ ...payload, roles: toggle(payload.roles, role) })}
               />
@@ -478,13 +486,16 @@ export function VisitForm({
       </div>
 
       {error && <p className="text-sm text-red-700">{error}</p>}
-      <button
-        type="submit"
-        disabled={saving}
-        className="no-print w-full rounded-xl bg-[#1b5e3b] py-3 font-semibold text-white disabled:opacity-60"
-      >
-        {saving ? "Guardando…" : "Guardar observación"}
-      </button>
+      <div className="h-20" />
+      <div className="no-print fixed inset-x-0 bottom-0 z-30 border-t border-[#d9c9a3] bg-[#fffdf8] px-4 py-3">
+        <button
+          type="submit"
+          disabled={saving}
+          className="w-full cursor-pointer rounded-xl bg-[#6a0938] py-3 font-semibold text-white disabled:opacity-60"
+        >
+          {saving ? "Guardando…" : "Guardar observación"}
+        </button>
+      </div>
     </form>
   );
 }

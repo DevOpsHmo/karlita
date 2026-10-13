@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { InstitutionHeader } from "@/components/InstitutionHeader";
 
 export default function Home() {
@@ -35,7 +35,7 @@ export default function Home() {
             href={c.href}
             className="rounded-2xl bg-[#fffdf8] p-5 shadow-sm ring-1 ring-[#e6dcc8] hover:ring-[#c4a35a]"
           >
-            <h2 className="font-bold text-[#123f28]">{c.title}</h2>
+            <h2 className="font-bold text-[#6a0938]">{c.title}</h2>
             <p className="mt-1 text-sm text-[#5a6b5e]">{c.text}</p>
           </Link>
         ))}

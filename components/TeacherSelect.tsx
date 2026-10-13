@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { Select, TURNO_OPTIONS } from "./Select";
@@ -103,7 +103,7 @@ export function TeacherSelect({
         {!creating ? (
           <button
             type="button"
-            className="text-sm text-[#1b5e3b] underline"
+            className="text-sm text-[#6a0938] underline"
             onClick={() => setCreating(true)}
             disabled={!schoolId}
           >
@@ -128,7 +128,7 @@ export function TeacherSelect({
               <button
                 type="button"
                 onClick={createTeacher}
-                className="rounded-lg bg-[#1b5e3b] px-3 py-2 text-sm text-white"
+                className="rounded-lg bg-[#6a0938] px-3 py-2 text-sm text-white"
               >
                 Guardar docente
               </button>

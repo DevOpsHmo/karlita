@@ -1,8 +1,9 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { PeriodBar } from "@/components/PeriodBar";
 
 const links = [
   { href: "/", label: "Inicio" },
@@ -28,7 +29,8 @@ export function Nav() {
   }
 
   return (
-    <header className="no-print sticky top-0 z-20 border-b border-[#d9c9a3] bg-[#123f28] text-white">
+    <div className="no-print sticky top-0 z-20">
+    <header className="border-b border-[#d9c9a3] bg-[#6a0938] text-white">
       <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-[11px] uppercase tracking-wide text-[#e6d5a8]">
@@ -42,7 +44,7 @@ export function Nav() {
               key={l.href}
               href={l.href}
               className={`rounded-full px-3 py-1 ${
-                pathname === l.href ? "bg-[#c4a35a] text-[#123f28]" : "bg-white/10 hover:bg-white/20"
+                pathname === l.href ? "bg-[#c4a35a] text-[#6a0938]" : "bg-white/10 hover:bg-white/20"
               }`}
             >
               {l.label}
@@ -54,5 +56,7 @@ export function Nav() {
         </nav>
       </div>
     </header>
+      <PeriodBar />
+    </div>
   );
 }

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { publicUrl } from "@/lib/public-origin";
@@ -17,30 +17,88 @@ export function ShareActions({
   const [busy, setBusy] = useState(false);
 
   async function resolveShare() {
-    const res = await fetch(sharePath, { method: "POST" });
+    const chartPrefs = (() => {
+      try {
+        return JSON.parse(localStorage.getItem("zona-chart-prefs") || "null");
+      } catch {
+        return null;
+      }
+    })();
+    const res = await fetch(sharePath, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chartPrefs: chartPrefs ?? { defaultKind: "bars", byId: {} } }),
+    });
     const json = await res.json();
     if (!res.ok || !json.path) return null;
-    return publicUrl(json.path as string);
+    return {
+      report: publicUrl(json.path as string),
+      pdfUrl: (json.pdfUrl as string) || "",
+    };
+  }
+
+  async function pdfFile(pdfUrl: string, filename: string) {
+    const res = await fetch(pdfUrl);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return new File([blob], filename, { type: "application/pdf" });
+  }
+
+  function saveFile(file: File) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(file);
+    a.download = file.name;
+    a.click();
+    URL.revokeObjectURL(a.href);
   }
 
   async function downloadPdf() {
     setBusy(true);
-    const report = await resolveShare();
+    const share = await resolveShare();
     setBusy(false);
-    if (!report) return;
-    window.open(`${report}?print=1`, "_blank");
+    if (!share) return;
+    if (share.pdfUrl) {
+      const file = await pdfFile(share.pdfUrl, includeAckLink ? "ficha-maestro.pdf" : "resultados-zona-x.pdf");
+      if (file) saveFile(file);
+      else window.open(share.pdfUrl, "_blank");
+      return;
+    }
+    window.open(`${share.report}?print=1`, "_blank");
   }
 
   async function send() {
     setBusy(true);
-    const report = await resolveShare();
-    setBusy(false);
-    if (!report) return;
-    let text = `${message.trim()}\n${report}`;
-    if (includeAckLink) {
-      text += `\n\nIndique si está de acuerdo (Sí o No) y firme aquí:\n${report}/firma`;
+    const share = await resolveShare();
+    if (!share) {
+      setBusy(false);
+      return;
     }
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+    const filename = includeAckLink ? "ficha-maestro.pdf" : "resultados-zona-x.pdf";
+    let file: File | null = null;
+    if (share.pdfUrl) file = await pdfFile(share.pdfUrl, filename);
+    setBusy(false);
+
+    const caption = includeAckLink
+      ? `${message.trim()}\n\nIndique si está de acuerdo (Sí o No) y firme aquí:\n${share.report}/firma`
+      : message.trim();
+
+    if (file) {
+      const payload = { files: [file], text: caption, title: filename };
+      const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
+      if (nav.share && nav.canShare?.(payload)) {
+        try {
+          await nav.share(payload);
+          return;
+        } catch (err) {
+          if ((err as Error).name === "AbortError") return;
+        }
+      }
+      saveFile(file);
+    } else if (share.pdfUrl) {
+      window.open(share.pdfUrl, "_blank");
+    }
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(caption)}`, "_blank");
   }
 
   return (
@@ -50,7 +108,7 @@ export function ShareActions({
           type="button"
           onClick={downloadPdf}
           disabled={busy}
-          className="cursor-pointer rounded-lg bg-[#1b5e3b] px-4 py-2 text-white disabled:cursor-wait"
+          className="cursor-pointer rounded-lg bg-[#6a0938] px-4 py-2 text-white disabled:cursor-wait"
         >
           {busy ? "Preparando…" : "Descargar PDF"}
         </button>
@@ -73,7 +131,7 @@ export function PrintOnly() {
     <button
       type="button"
       onClick={() => window.print()}
-      className="no-print mb-4 cursor-pointer rounded-lg bg-[#1b5e3b] px-4 py-2 text-white"
+      className="no-print mb-4 cursor-pointer rounded-lg bg-[#6a0938] px-4 py-2 text-white"
     >
       Descargar PDF
     </button>

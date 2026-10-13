@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 export function YesNo({
   name,
@@ -18,7 +18,7 @@ export function YesNo({
             name={name}
             checked={value === opt}
             onChange={() => onChange(opt)}
-            className="accent-[#1b5e3b]"
+            className="accent-[#6a0938]"
           />
           {opt === "si" ? "Sí" : "No"}
         </label>

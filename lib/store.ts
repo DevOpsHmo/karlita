@@ -2,8 +2,17 @@ import { SCHOOLS } from "./schools";
 import { supabaseAdmin } from "./supabase/admin";
 
 const BUCKET = "zona-x-data";
+const SHARE_DAYS = 90;
 
-export type School = { id: string; name: string; shortName: string; cct: string; shareToken?: string };
+export type School = {
+  id: string;
+  name: string;
+  shortName: string;
+  cct: string;
+  shareToken?: string;
+  shareExpiresAt?: string;
+  shareRevoked?: boolean;
+};
 export type Teacher = {
   id: string;
   name: string;
@@ -12,9 +21,12 @@ export type Teacher = {
   schoolId: string;
   createdAt: string;
   shareToken?: string;
+  shareExpiresAt?: string;
+  shareRevoked?: boolean;
   school?: School;
+  createdBy?: string;
+  updatedBy?: string;
 };
-
 export type Acknowledgment = {
   teacherId: string;
   agreed: boolean;
@@ -33,54 +45,116 @@ export type RecordRow = {
   payload: string;
   createdAt: string;
   updatedAt: string;
+  createdBy?: string;
+  updatedBy?: string;
   teacher?: Teacher;
 };
+export type AppSettings = {
+  closedPeriods: ("1" | "2" | "3")[];
+  updatedAt: string;
+};
+export type AuditEvent = {
+  id: string;
+  at: string;
+  actor: string;
+  action: string;
+  detail: string;
+};
+export type Draft = {
+  schoolId: string;
+  teacherId: string;
+  payload: unknown;
+  updatedAt: string;
+};
 
-async function put(path: string, data: unknown) {
-  const sb = supabaseAdmin();
+function sb() {
+  return supabaseAdmin();
+}
+
+function iso(v?: string | null) {
+  return v ?? undefined;
+}
+
+function mapSchool(r: Record<string, unknown>): School {
+  return {
+    id: String(r.id),
+    name: String(r.name),
+    shortName: String(r.short_name),
+    cct: String(r.cct),
+    shareToken: iso(r.share_token as string),
+    shareExpiresAt: iso(r.share_expires_at as string),
+    shareRevoked: Boolean(r.share_revoked),
+  };
+}
+
+function mapTeacher(r: Record<string, unknown>, school?: School): Teacher {
+  return {
+    id: String(r.id),
+    name: String(r.name),
+    disciplina: String(r.disciplina ?? ""),
+    turno: String(r.turno ?? ""),
+    schoolId: String(r.school_id),
+    createdAt: String(r.created_at),
+    shareToken: iso(r.share_token as string),
+    shareExpiresAt: iso(r.share_expires_at as string),
+    shareRevoked: Boolean(r.share_revoked),
+    createdBy: iso(r.created_by as string),
+    school,
+  };
+}
+
+function mapRecord(r: Record<string, unknown>): RecordRow {
+  const payload = r.payload;
+  return {
+    id: String(r.id),
+    teacherId: String(r.teacher_id),
+    payload: typeof payload === "string" ? payload : JSON.stringify(payload ?? {}),
+    createdAt: String(r.created_at),
+    updatedAt: String(r.updated_at),
+    createdBy: iso(r.created_by as string),
+    updatedBy: iso(r.updated_by as string),
+  };
+}
+
+function mapAck(r: Record<string, unknown>): Acknowledgment {
+  return {
+    teacherId: String(r.teacher_id),
+    agreed: Boolean(r.agreed),
+    nombreFirma: String(r.nombre_firma ?? ""),
+    firmaDataUrl: String(r.firma_data_url ?? ""),
+    comentario: String(r.comentario ?? ""),
+    signedAt: String(r.signed_at ?? ""),
+    folderId: iso(r.folder_id as string),
+    visitId: iso(r.visit_id as string),
+    folderPct: r.folder_pct == null ? undefined : Number(r.folder_pct),
+    visitPct: r.visit_pct == null ? undefined : Number(r.visit_pct),
+  };
+}
+
+async function putBackup(path: string, data: unknown) {
   const body = JSON.stringify(data);
-  const { error } = await sb.storage.from(BUCKET).upload(path, body, {
-    upsert: true,
-    contentType: "application/json",
-  });
-  if (error) throw error;
-}
-
-async function get<T>(path: string): Promise<T | null> {
-  const sb = supabaseAdmin();
-  const { data, error } = await sb.storage.from(BUCKET).download(path);
-  if (error || !data) return null;
-  return JSON.parse(await data.text()) as T;
-}
-
-async function remove(path: string) {
-  const sb = supabaseAdmin();
-  await sb.storage.from(BUCKET).remove([path]);
-}
-
-async function listJson<T>(prefix: string): Promise<T[]> {
-  const sb = supabaseAdmin();
-  const { data, error } = await sb.storage.from(BUCKET).list(prefix, { limit: 1000 });
-  if (error || !data) return [];
-  const files = data.filter((f) => f.name.endsWith(".json"));
-  const rows: T[] = [];
-  for (const f of files) {
-    const row = await get<T>(`${prefix}/${f.name}`);
-    if (row) rows.push(row);
-  }
-  return rows;
+  await sb().storage.from(BUCKET).upload(path, body, { upsert: true, contentType: "application/json" });
 }
 
 export async function ensureSchools(): Promise<School[]> {
-  const existing = await listJson<School>("schools");
-  if (existing.length) return existing.sort((a, b) => a.shortName.localeCompare(b.shortName));
+  const { data } = await sb().from("schools").select("*");
+  if (data?.length) return data.map(mapSchool).sort((a, b) => a.shortName.localeCompare(b.shortName));
   const created: School[] = SCHOOLS.map((s) => ({
     id: crypto.randomUUID(),
     name: s.name,
     shortName: s.shortName,
     cct: s.cct,
   }));
-  for (const s of created) await put(`schools/${s.id}.json`, s);
+  await sb()
+    .from("schools")
+    .insert(
+      created.map((s) => ({
+        id: s.id,
+        name: s.name,
+        short_name: s.shortName,
+        cct: s.cct,
+      }))
+    );
   return created.sort((a, b) => a.shortName.localeCompare(b.shortName));
 }
 
@@ -94,19 +168,27 @@ async function withSchool(teacher: Teacher): Promise<Teacher> {
 }
 
 export async function listTeachers(schoolId?: string | null) {
-  let teachers = await listJson<Teacher>("teachers");
-  if (schoolId) teachers = teachers.filter((t) => t.schoolId === schoolId);
+  let q = sb().from("teachers").select("*");
+  if (schoolId) q = q.eq("school_id", schoolId);
+  const { data } = await q;
+  const teachers = (data ?? []).map((r) => mapTeacher(r as Record<string, unknown>));
   teachers.sort((a, b) => a.name.localeCompare(b.name, "es"));
   return Promise.all(teachers.map(withSchool));
 }
 
 export async function getTeacher(id: string) {
-  const t = await get<Teacher>(`teachers/${id}.json`);
-  if (!t) return null;
-  return withSchool(t);
+  const { data } = await sb().from("teachers").select("*").eq("id", id).maybeSingle();
+  if (!data) return null;
+  return withSchool(mapTeacher(data as Record<string, unknown>));
 }
 
-export async function createTeacher(input: { name: string; disciplina: string; turno: string; schoolId: string }) {
+export async function createTeacher(input: {
+  name: string;
+  disciplina: string;
+  turno: string;
+  schoolId: string;
+  actor?: string;
+}) {
   const teacher: Teacher = {
     id: crypto.randomUUID(),
     name: input.name,
@@ -115,8 +197,22 @@ export async function createTeacher(input: { name: string; disciplina: string; t
     schoolId: input.schoolId,
     createdAt: new Date().toISOString(),
     shareToken: crypto.randomUUID(),
+    shareExpiresAt: new Date(Date.now() + SHARE_DAYS * 86400000).toISOString(),
+    createdBy: input.actor,
   };
-  await put(`teachers/${teacher.id}.json`, teacher);
+  const { error } = await sb().from("teachers").insert({
+    id: teacher.id,
+    name: teacher.name,
+    disciplina: teacher.disciplina,
+    turno: teacher.turno,
+    school_id: teacher.schoolId,
+    created_at: teacher.createdAt,
+    share_token: teacher.shareToken,
+    share_expires_at: teacher.shareExpiresAt,
+    created_by: teacher.createdBy,
+  });
+  if (error) throw error;
+  await appendAudit(teacher.createdBy ?? "sistema", "alta_maestro", teacher.name);
   return withSchool(teacher);
 }
 
@@ -124,22 +220,27 @@ export async function updateTeacher(
   id: string,
   patch: Partial<Pick<Teacher, "name" | "disciplina" | "turno" | "schoolId">>
 ) {
-  const current = await get<Teacher>(`teachers/${id}.json`);
+  const current = await getTeacher(id);
   if (!current) return null;
-  const next = {
-    ...current,
-    ...Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)),
-  };
-  await put(`teachers/${id}.json`, next);
+  const next = { ...current, ...Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)) };
+  await sb()
+    .from("teachers")
+    .update({
+      name: next.name,
+      disciplina: next.disciplina,
+      turno: next.turno,
+      school_id: next.schoolId,
+    })
+    .eq("id", id);
   return withSchool(next);
 }
 
-export async function deleteTeacher(id: string) {
-  const folders = await listFolderReviews();
-  const visits = await listClassVisits();
-  for (const r of folders.filter((x) => x.teacherId === id)) await remove(`folder-reviews/${r.id}.json`);
-  for (const r of visits.filter((x) => x.teacherId === id)) await remove(`class-visits/${r.id}.json`);
-  await remove(`teachers/${id}.json`);
+export async function deleteTeacher(id: string, actor?: string) {
+  await sb().from("folder_reviews").delete().eq("teacher_id", id);
+  await sb().from("class_visits").delete().eq("teacher_id", id);
+  await sb().from("acknowledgments").delete().eq("teacher_id", id);
+  await sb().from("teachers").delete().eq("id", id);
+  await appendAudit(actor ?? "sistema", "baja_maestro", id);
 }
 
 async function withTeacher(row: RecordRow): Promise<RecordRow> {
@@ -148,110 +249,219 @@ async function withTeacher(row: RecordRow): Promise<RecordRow> {
 }
 
 export async function listFolderReviews(opts?: { teacherId?: string | null; schoolId?: string | null }) {
-  let rows = await listJson<RecordRow>("folder-reviews");
-  if (opts?.teacherId) rows = rows.filter((r) => r.teacherId === opts.teacherId);
-  const withT = await Promise.all(rows.map(withTeacher));
-  let out = withT;
-  if (opts?.schoolId) out = out.filter((r) => r.teacher?.schoolId === opts.schoolId);
-  return out.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  let q = sb().from("folder_reviews").select("*");
+  if (opts?.teacherId) q = q.eq("teacher_id", opts.teacherId);
+  const { data } = await q;
+  let rows = await Promise.all((data ?? []).map((r) => withTeacher(mapRecord(r as Record<string, unknown>))));
+  if (opts?.schoolId) rows = rows.filter((r) => r.teacher?.schoolId === opts.schoolId);
+  return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export async function getFolderReview(id: string) {
-  const row = await get<RecordRow>(`folder-reviews/${id}.json`);
-  if (!row) return null;
-  return withTeacher(row);
+  const { data } = await sb().from("folder_reviews").select("*").eq("id", id).maybeSingle();
+  if (!data) return null;
+  return withTeacher(mapRecord(data as Record<string, unknown>));
 }
 
-export async function saveFolderReview(teacherId: string, payload: unknown, id?: string) {
+export async function saveFolderReview(
+  teacherId: string,
+  payload: unknown,
+  id?: string,
+  opts?: { actor?: string; expectedUpdatedAt?: string; forceNew?: boolean }
+) {
   const now = new Date().toISOString();
-  const existing = id ? await get<RecordRow>(`folder-reviews/${id}.json`) : null;
+  const existing = id ? await getFolderReview(id) : null;
+  if (existing && opts?.expectedUpdatedAt && existing.updatedAt !== opts.expectedUpdatedAt) {
+    throw new Error("CONFLICT");
+  }
   const row: RecordRow = {
     id: existing?.id ?? crypto.randomUUID(),
     teacherId,
     payload: JSON.stringify(payload ?? {}),
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
+    createdBy: existing?.createdBy ?? opts?.actor,
+    updatedBy: opts?.actor,
   };
-  await put(`folder-reviews/${row.id}.json`, row);
+  const body = {
+    id: row.id,
+    teacher_id: teacherId,
+    payload: payload ?? {},
+    created_at: row.createdAt,
+    updated_at: row.updatedAt,
+    created_by: row.createdBy,
+    updated_by: row.updatedBy,
+  };
+  const { error } = existing
+    ? await sb().from("folder_reviews").update(body).eq("id", row.id)
+    : await sb().from("folder_reviews").insert(body);
+  if (error) throw error;
+  await appendAudit(opts?.actor ?? "sistema", existing ? "edita_carpeta" : "captura_carpeta", teacherId);
+  await maybeBackup();
   return withTeacher(row);
 }
 
 export async function listClassVisits(opts?: { teacherId?: string | null; schoolId?: string | null }) {
-  let rows = await listJson<RecordRow>("class-visits");
-  if (opts?.teacherId) rows = rows.filter((r) => r.teacherId === opts.teacherId);
-  const withT = await Promise.all(rows.map(withTeacher));
-  let out = withT;
-  if (opts?.schoolId) out = out.filter((r) => r.teacher?.schoolId === opts.schoolId);
-  return out.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  let q = sb().from("class_visits").select("*");
+  if (opts?.teacherId) q = q.eq("teacher_id", opts.teacherId);
+  const { data } = await q;
+  let rows = await Promise.all((data ?? []).map((r) => withTeacher(mapRecord(r as Record<string, unknown>))));
+  if (opts?.schoolId) rows = rows.filter((r) => r.teacher?.schoolId === opts.schoolId);
+  return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export async function getClassVisit(id: string) {
-  const row = await get<RecordRow>(`class-visits/${id}.json`);
-  if (!row) return null;
-  return withTeacher(row);
+  const { data } = await sb().from("class_visits").select("*").eq("id", id).maybeSingle();
+  if (!data) return null;
+  return withTeacher(mapRecord(data as Record<string, unknown>));
 }
 
-export async function saveClassVisit(teacherId: string, payload: unknown, id?: string) {
+export async function saveClassVisit(
+  teacherId: string,
+  payload: unknown,
+  id?: string,
+  opts?: { actor?: string; expectedUpdatedAt?: string }
+) {
   const now = new Date().toISOString();
-  const existing = id ? await get<RecordRow>(`class-visits/${id}.json`) : null;
+  const existing = id ? await getClassVisit(id) : null;
+  if (existing && opts?.expectedUpdatedAt && existing.updatedAt !== opts.expectedUpdatedAt) {
+    throw new Error("CONFLICT");
+  }
   const row: RecordRow = {
     id: existing?.id ?? crypto.randomUUID(),
     teacherId,
     payload: JSON.stringify(payload ?? {}),
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
+    createdBy: existing?.createdBy ?? opts?.actor,
+    updatedBy: opts?.actor,
   };
-  await put(`class-visits/${row.id}.json`, row);
+  const body = {
+    id: row.id,
+    teacher_id: teacherId,
+    payload: payload ?? {},
+    created_at: row.createdAt,
+    updated_at: row.updatedAt,
+    created_by: row.createdBy,
+    updated_by: row.updatedBy,
+  };
+  const { error } = existing
+    ? await sb().from("class_visits").update(body).eq("id", row.id)
+    : await sb().from("class_visits").insert(body);
+  if (error) throw error;
+  await appendAudit(opts?.actor ?? "sistema", existing ? "edita_visita" : "captura_visita", teacherId);
+  await maybeBackup();
   return withTeacher(row);
 }
 
-export type Draft = {
-  schoolId: string;
-  teacherId: string;
-  payload: unknown;
-  updatedAt: string;
-};
-
-export async function getDraft(userId: string, kind: string) {
-  return get<Draft>(`drafts/${userId}/${kind}.json`);
+export async function getDraft(userId: string, kind: string, teacherId?: string) {
+  if (!teacherId) return null;
+  const { data } = await sb()
+    .from("drafts")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("kind", kind)
+    .eq("teacher_id", teacherId)
+    .maybeSingle();
+  if (!data) return null;
+  return {
+    schoolId: String(data.school_id ?? ""),
+    teacherId: String(data.teacher_id),
+    payload: data.payload,
+    updatedAt: String(data.updated_at),
+  } as Draft;
 }
 
 export async function saveDraft(userId: string, kind: string, draft: Omit<Draft, "updatedAt">) {
   const row: Draft = { ...draft, updatedAt: new Date().toISOString() };
-  await put(`drafts/${userId}/${kind}.json`, row);
+  const { error } = await sb().from("drafts").upsert({
+    user_id: userId,
+    kind,
+    teacher_id: draft.teacherId,
+    school_id: draft.schoolId,
+    payload: draft.payload ?? {},
+    updated_at: row.updatedAt,
+  });
+  if (error) throw error;
   return row;
 }
 
-export async function deleteDraft(userId: string, kind: string) {
-  await remove(`drafts/${userId}/${kind}.json`);
+export async function deleteDraft(userId: string, kind: string, teacherId?: string) {
+  let q = sb().from("drafts").delete().eq("user_id", userId).eq("kind", kind);
+  if (teacherId) q = q.eq("teacher_id", teacherId);
+  await q;
+}
+
+function freshExpiry() {
+  return new Date(Date.now() + SHARE_DAYS * 86400000).toISOString();
+}
+
+export function isShareActive(row: { shareToken?: string; shareExpiresAt?: string; shareRevoked?: boolean }) {
+  if (!row.shareToken || row.shareRevoked) return false;
+  if (row.shareExpiresAt && Date.parse(row.shareExpiresAt) < Date.now()) return false;
+  return true;
 }
 
 export async function ensureShareToken(teacherId: string) {
-  const t = await get<Teacher>(`teachers/${teacherId}.json`);
+  const t = await getTeacher(teacherId);
   if (!t) return null;
-  if (t.shareToken) return withSchool(t);
-  t.shareToken = crypto.randomUUID();
-  await put(`teachers/${t.id}.json`, t);
-  return withSchool(t);
+  if (!isShareActive(t)) {
+    t.shareToken = crypto.randomUUID();
+    t.shareExpiresAt = freshExpiry();
+    t.shareRevoked = false;
+    await sb()
+      .from("teachers")
+      .update({
+        share_token: t.shareToken,
+        share_expires_at: t.shareExpiresAt,
+        share_revoked: false,
+      })
+      .eq("id", t.id);
+  }
+  return t;
+}
+
+export async function revokeTeacherShare(teacherId: string, actor?: string) {
+  const t = await getTeacher(teacherId);
+  if (!t) return null;
+  t.shareRevoked = true;
+  await sb().from("teachers").update({ share_revoked: true }).eq("id", teacherId);
+  await appendAudit(actor ?? "sistema", "revoca_enlace", teacherId);
+  return t;
 }
 
 export async function getTeacherByToken(token: string) {
-  const teachers = await listJson<Teacher>("teachers");
-  const t = teachers.find((x) => x.shareToken === token);
-  if (!t) return null;
-  return withSchool(t);
+  const { data } = await sb().from("teachers").select("*").eq("share_token", token).maybeSingle();
+  if (!data) return null;
+  const t = await withSchool(mapTeacher(data as Record<string, unknown>));
+  if (!isShareActive(t)) return null;
+  return t;
 }
 
 export async function getAcknowledgment(teacherId: string) {
-  return get<Acknowledgment>(`acknowledgments/${teacherId}.json`);
+  const { data } = await sb().from("acknowledgments").select("*").eq("teacher_id", teacherId).maybeSingle();
+  return data ? mapAck(data as Record<string, unknown>) : null;
 }
 
 export async function listAcknowledgments() {
-  return listJson<Acknowledgment>("acknowledgments");
+  const { data } = await sb().from("acknowledgments").select("*");
+  return (data ?? []).map((r) => mapAck(r as Record<string, unknown>));
 }
 
 export async function saveAcknowledgment(ack: Acknowledgment) {
-  await put(`acknowledgments/${ack.teacherId}.json`, ack);
+  await sb().from("acknowledgments").upsert({
+    teacher_id: ack.teacherId,
+    agreed: ack.agreed,
+    nombre_firma: ack.nombreFirma,
+    firma_data_url: ack.firmaDataUrl,
+    comentario: ack.comentario,
+    signed_at: ack.signedAt,
+    folder_id: ack.folderId,
+    visit_id: ack.visitId,
+    folder_pct: ack.folderPct,
+    visit_pct: ack.visitPct,
+  });
+  await appendAudit("docente", ack.agreed ? "firma_de_acuerdo" : "firma_en_desacuerdo", ack.teacherId);
   return ack;
 }
 
@@ -275,29 +485,120 @@ export async function getSchool(id: string) {
 }
 
 export async function ensureSchoolShareToken(id: string) {
-  const s = await get<School>(`schools/${id}.json`);
+  const s = await getSchool(id);
   if (!s) return null;
-  if (!s.shareToken) {
+  if (!isShareActive(s)) {
     s.shareToken = crypto.randomUUID();
-    await put(`schools/${id}.json`, s);
+    s.shareExpiresAt = freshExpiry();
+    s.shareRevoked = false;
+    await sb()
+      .from("schools")
+      .update({
+        share_token: s.shareToken,
+        share_expires_at: s.shareExpiresAt,
+        share_revoked: false,
+      })
+      .eq("id", id);
   }
   return s;
 }
 
 export async function getSchoolByToken(token: string) {
-  const schools = await ensureSchools();
-  return schools.find((s) => s.shareToken === token) ?? null;
+  const { data } = await sb().from("schools").select("*").eq("share_token", token).maybeSingle();
+  if (!data) return null;
+  const s = mapSchool(data as Record<string, unknown>);
+  if (!isShareActive(s)) return null;
+  return s;
 }
 
 export async function ensureZonaShareToken() {
-  const current = await get<{ shareToken: string }>("meta/zona.json");
-  if (current?.shareToken) return current.shareToken;
+  const { data } = await sb().from("zona_share").select("*").eq("id", "zona").maybeSingle();
+  const current = data
+    ? {
+        shareToken: String(data.share_token ?? ""),
+        shareExpiresAt: iso(data.share_expires_at as string),
+        shareRevoked: Boolean(data.share_revoked),
+      }
+    : null;
+  if (current && isShareActive(current)) return current.shareToken;
   const shareToken = crypto.randomUUID();
-  await put("meta/zona.json", { shareToken });
+  await sb().from("zona_share").upsert({
+    id: "zona",
+    share_token: shareToken,
+    share_expires_at: freshExpiry(),
+    share_revoked: false,
+  });
   return shareToken;
 }
 
 export async function getZonaByToken(token: string) {
-  const current = await get<{ shareToken: string }>("meta/zona.json");
-  return current?.shareToken === token;
+  const { data } = await sb().from("zona_share").select("*").eq("id", "zona").maybeSingle();
+  if (!data || data.share_token !== token) return false;
+  return isShareActive({
+    shareToken: String(data.share_token),
+    shareExpiresAt: iso(data.share_expires_at as string),
+    shareRevoked: Boolean(data.share_revoked),
+  });
+}
+
+export async function getSettings(): Promise<AppSettings> {
+  const { data } = await sb().from("app_settings").select("*").eq("id", "default").maybeSingle();
+  if (!data) return { closedPeriods: [], updatedAt: new Date().toISOString() };
+  return {
+    closedPeriods: (data.closed_periods ?? []) as AppSettings["closedPeriods"],
+    updatedAt: String(data.updated_at),
+  };
+}
+
+export async function saveSettings(next: AppSettings, actor?: string) {
+  await sb().from("app_settings").upsert({
+    id: "default",
+    closed_periods: next.closedPeriods,
+    updated_at: next.updatedAt,
+  });
+  await appendAudit(actor ?? "sistema", "ajuste_periodos", next.closedPeriods.join(",") || "abiertos");
+  return next;
+}
+
+export async function appendAudit(actor: string, action: string, detail: string) {
+  await sb().from("audit_events").insert({
+    id: crypto.randomUUID(),
+    at: new Date().toISOString(),
+    actor,
+    action,
+    detail,
+  });
+}
+
+export async function listAudit() {
+  const { data } = await sb().from("audit_events").select("*").order("at", { ascending: false }).limit(200);
+  return (data ?? []).map(
+    (e) =>
+      ({
+        id: String(e.id),
+        at: String(e.at),
+        actor: String(e.actor ?? ""),
+        action: String(e.action ?? ""),
+        detail: String(e.detail ?? ""),
+      }) satisfies AuditEvent
+  );
+}
+
+async function maybeBackup() {
+  const day = new Date().toISOString().slice(0, 10);
+  const marker = await sb().storage.from(BUCKET).download("backups/last.json");
+  if (marker.data) {
+    const last = JSON.parse(await marker.data.text()) as { at: string };
+    if (last.at === day) return;
+  }
+  const snapshot = {
+    at: new Date().toISOString(),
+    schools: await listSchools(),
+    teachers: await listTeachers(),
+    folders: await listFolderReviews(),
+    visits: await listClassVisits(),
+    acks: await listAcknowledgments(),
+  };
+  await putBackup(`backups/${day}.json`, snapshot);
+  await putBackup("backups/last.json", { at: day });
 }

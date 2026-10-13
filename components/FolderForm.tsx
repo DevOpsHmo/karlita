@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -52,8 +52,11 @@ export function FolderForm({
     onRestore: (d) => {
       if (d.payload) setPayload({ ...emptyFolderPayload(), ...(d.payload as FolderPayload) });
       if (d.schoolId) setSchoolId(d.schoolId);
-      if (d.teacherId) setTeacherId(d.teacherId);
-      setDraftHint("Se recuperó el avance guardado de esta revisión.");
+      setDraftHint("Se recuperó el avance de este maestro. Puede continuar donde se quedó.");
+    },
+    onNoDraft: () => {
+      setPayload((p) => ({ ...emptyFolderPayload(), disciplina: p.disciplina, turno: p.turno }));
+      setDraftHint("");
     },
   });
 
@@ -81,15 +84,43 @@ export function FolderForm({
     const res = await fetch(url, {
       method: reviewId ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherId, payload }),
+      body: JSON.stringify({ teacherId, payload, confirmNew: (window as unknown as { __confirmFolder?: boolean }).__confirmFolder }),
     });
     setSaving(false);
+    if (res.status === 409) {
+      const json = await res.json();
+      if (json.existing && json.lastId) {
+        const ok = confirm(`${json.error}\n\nAceptar = crear otra. Cancelar = abrir la última.`);
+        if (!ok) {
+          router.push(`/carpetas/${json.lastId}`);
+          return;
+        }
+        (window as unknown as { __confirmFolder?: boolean }).__confirmFolder = true;
+        setSaving(true);
+        const retry = await fetch("/api/folder-reviews", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ teacherId, payload, confirmNew: true }),
+        });
+        setSaving(false);
+        if (!retry.ok) {
+          setError("No se pudo guardar.");
+          return;
+        }
+        const row = await retry.json();
+        await clearDraft("folder", teacherId);
+        router.push(`/resultados/maestro/${row.teacherId}`);
+        return;
+      }
+      setError(json.error || "Conflicto al guardar.");
+      return;
+    }
     if (!res.ok) {
       setError("No se pudo guardar.");
       return;
     }
     const row = await res.json();
-    await clearDraft("folder");
+    await clearDraft("folder", teacherId);
     router.push(`/resultados/maestro/${row.teacherId}`);
   }
 
@@ -106,8 +137,12 @@ export function FolderForm({
   return (
     <form onSubmit={submit} className="mx-auto max-w-3xl space-y-4 px-4 py-6">
       <InstitutionHeader title="Revisión de carpetas" />
-      {draftHint && <p className="rounded-lg bg-[#eef6ef] px-3 py-2 text-sm text-[#1b5e3b]">{draftHint}</p>}
-      <p className="text-xs text-[#5a6b5e]">El avance se guarda solo, aunque se cierre la pestaña o se cambie de app.</p>
+      {draftHint && (
+        <p className="rounded-lg bg-[#c4a35a] px-3 py-3 text-sm font-semibold text-[#6a0938]">
+          Continuar donde me quedé: se recuperó el avance guardado de esta revisión.
+        </p>
+      )}
+      <p className="text-xs text-[#5a6b5e]">El avance se guarda solo por sección, aunque se cierre la pestaña o se cambie de app.</p>
       <div className="rounded-2xl bg-[#fffdf8] p-4 shadow-sm ring-1 ring-[#e6dcc8]">
         <TeacherSelect
           schoolId={schoolId}
@@ -153,8 +188,8 @@ export function FolderForm({
         const row = payload.items[item.id];
         return (
           <div key={item.id}>
-            {showEtapa && <h2 className="mt-6 text-lg font-bold text-[#123f28]">{item.etapa}</h2>}
-            {showSub && <h3 className="mt-2 text-sm font-semibold text-[#1b5e3b]">{item.sub}</h3>}
+            {showEtapa && <h2 className="mt-6 text-lg font-bold text-[#6a0938]">{item.etapa}</h2>}
+            {showSub && <h3 className="mt-2 text-sm font-semibold text-[#6a0938]">{item.sub}</h3>}
             <div className="mt-2 rounded-2xl bg-[#fffdf8] p-4 shadow-sm ring-1 ring-[#e6dcc8]">
               <p className="mb-3 text-sm font-medium">{item.label}</p>
               <div className="grid gap-3 sm:grid-cols-3">
@@ -225,7 +260,7 @@ export function FolderForm({
             <label key={role} className="flex items-center gap-1 text-sm">
               <input
                 type="checkbox"
-                className="accent-[#1b5e3b]"
+                className="accent-[#6a0938]"
                 checked={payload.roles.includes(role)}
                 onChange={(e) => {
                   const roles = e.target.checked
@@ -259,13 +294,16 @@ export function FolderForm({
       </div>
 
       {error && <p className="text-sm text-red-700">{error}</p>}
-      <button
-        type="submit"
-        disabled={saving}
-        className="no-print w-full rounded-xl bg-[#1b5e3b] py-3 font-semibold text-white disabled:opacity-60"
-      >
-        {saving ? "Guardando…" : "Guardar revisión"}
-      </button>
+      <div className="h-20" />
+      <div className="no-print fixed inset-x-0 bottom-0 z-30 border-t border-[#d9c9a3] bg-[#fffdf8] px-4 py-3">
+        <button
+          type="submit"
+          disabled={saving}
+          className="w-full cursor-pointer rounded-xl bg-[#6a0938] py-3 font-semibold text-white disabled:opacity-60"
+        >
+          {saving ? "Guardando…" : "Guardar revisión"}
+        </button>
+      </div>
     </form>
   );
 }

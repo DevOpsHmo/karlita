@@ -139,7 +139,7 @@ export default function PublicTeacherSignPage() {
           <button
             type="submit"
             disabled={saving || !agreed}
-            className="w-full cursor-pointer rounded-xl bg-[#1b5e3b] py-3 font-semibold text-white disabled:opacity-60"
+            className="w-full cursor-pointer rounded-xl bg-[#6a0938] py-3 font-semibold text-white disabled:opacity-60"
           >
             {saving ? "Enviando…" : "Enviar acuerdo y firma"}
           </button>
@@ -147,7 +147,7 @@ export default function PublicTeacherSignPage() {
       )}
 
       {done && (
-        <p className="mt-4 rounded-xl bg-[#eef6ef] p-4 text-sm text-[#1b5e3b]">
+        <p className="mt-4 rounded-xl bg-[#eef6ef] p-4 text-sm text-[#6a0938]">
           Gracias. Su respuesta quedó registrada para la supervisión de zona.
         </p>
       )}
