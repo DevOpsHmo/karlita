@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
-import { visitPeriodFromDate } from "@/lib/periods";
-import { ackStatus, listAcknowledgments, listClassVisits, listFolderReviews, listSchools, listTeachers } from "@/lib/store";
-import type { VisitPayload } from "@/lib/visit-form";
+import { ackStatus, listAcknowledgments, listClassVisits, listFolderReviews, listTeachers } from "@/lib/store";
 
 export async function GET() {
-  const [schools, teachers, visits, folders, acks] = await Promise.all([
-    listSchools(),
+  const [teachers, visits, folders, acks] = await Promise.all([
     listTeachers(),
     listClassVisits(),
     listFolderReviews(),
@@ -13,21 +10,6 @@ export async function GET() {
   ]);
   const ackBy = Object.fromEntries(acks.map((a) => [a.teacherId, a]));
   const alerts: { level: "warn" | "info"; text: string }[] = [];
-  for (const school of schools) {
-    const ids = new Set(teachers.filter((t) => t.schoolId === school.id).map((t) => t.id));
-    for (const p of ["1", "2", "3"] as const) {
-      const has = visits.some((v) => {
-        if (!ids.has(v.teacherId)) return false;
-        try {
-          const payload = JSON.parse(v.payload) as VisitPayload;
-          return visitPeriodFromDate(payload.fecha) === p;
-        } catch {
-          return false;
-        }
-      });
-      if (!has) alerts.push({ level: "warn", text: `${school.shortName} no tiene visitas del periodo ${p}.` });
-    }
-  }
   const unsigned = teachers.filter((t) => {
     const lastF = folders.find((f) => f.teacherId === t.id);
     const lastV = visits.find((v) => v.teacherId === t.id);

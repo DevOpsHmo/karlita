@@ -487,11 +487,11 @@ export function VisitForm({
 
       {error && <p className="text-sm text-red-700">{error}</p>}
       <div className="h-20" />
-      <div className="no-print fixed inset-x-0 bottom-0 z-30 border-t border-[#d9c9a3] bg-[#fffdf8] px-4 py-3">
+      <div className="no-print fixed inset-x-0 bottom-0 z-30 flex justify-center border-t border-[#d9c9a3] bg-[#fffdf8] px-4 py-3">
         <button
           type="submit"
           disabled={saving}
-          className="w-full cursor-pointer rounded-xl bg-[#6a0938] py-3 font-semibold text-white disabled:opacity-60"
+          className="cursor-pointer rounded-xl bg-[#6a0938] px-6 py-2.5 font-semibold text-white disabled:opacity-60"
         >
           {saving ? "Guardando…" : "Guardar observación"}
         </button>
