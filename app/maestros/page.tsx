@@ -21,7 +21,6 @@ export default function MaestrosPage() {
   const [name, setName] = useState("");
   const [disciplina, setDisciplina] = useState("");
   const [turno, setTurno] = useState("Matutino");
-  const [role, setRole] = useState("atp");
   const [saving, setSaving] = useState(false);
 
   async function load(sid = schoolId) {
@@ -35,9 +34,6 @@ export default function MaestrosPage() {
 
   useEffect(() => {
     load();
-    fetch("/api/me")
-      .then((r) => r.json())
-      .then((d) => setRole(d.role));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -104,15 +100,25 @@ export default function MaestrosPage() {
                 {t.school.shortName} · {t.disciplina || "Sin disciplina"} · {t.turno}
               </p>
             </div>
-            <div className="flex gap-3 text-sm">
+            <div className="flex items-center gap-3 text-sm">
               <Link className="text-[#6a0938] underline" href={`/resultados/maestro/${t.id}`}>
                 Ficha
               </Link>
-              {role === "supervision" && (
-                <button type="button" className="cursor-pointer text-red-700" onClick={() => remove(t.id)}>
-                  Eliminar
-                </button>
-              )}
+              <button
+                type="button"
+                title="Eliminar docente"
+                aria-label={`Eliminar a ${t.name}`}
+                className="cursor-pointer rounded-lg p-1.5 text-[#6a0938] hover:bg-[#f8e6ee] hover:text-red-700"
+                onClick={() => remove(t.id)}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                  <path d="M4 7h16" />
+                  <path d="M10 11v6" />
+                  <path d="M14 11v6" />
+                  <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12" />
+                  <path d="M9 7V4h6v3" />
+                </svg>
+              </button>
             </div>
           </li>
         ))}

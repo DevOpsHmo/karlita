@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isSupervision } from "@/lib/roles";
 import { deleteTeacher, getTeacher, updateTeacher } from "@/lib/store";
 import { currentUser } from "@/lib/supabase/route";
 
@@ -25,10 +24,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
 export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await currentUser();
-  if (!isSupervision(user?.email)) {
-    return NextResponse.json({ error: "Solo supervisión puede eliminar maestros" }, { status: 403 });
-  }
+  if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   const { id } = await params;
-  await deleteTeacher(id, user?.email);
+  await deleteTeacher(id, user.email);
   return NextResponse.json({ ok: true });
 }
