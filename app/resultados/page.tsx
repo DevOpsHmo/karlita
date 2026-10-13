@@ -6,6 +6,7 @@ import { Bar } from "@/components/Bar";
 import { ShareActions } from "@/components/ShareActions";
 import { Loading } from "@/components/Loading";
 import { ACK_CLASS, ACK_LABELS } from "@/lib/ack-labels";
+import { Select } from "@/components/Select";
 import { ViewSignatureButton } from "@/components/ViewSignature";
 
 type Stats = {
@@ -131,30 +132,28 @@ export default function ResultadosPage() {
       ))}
 
       <h2 className="mb-2 mt-8 font-bold print:mt-0 print:pt-10">Fichas por maestro</h2>
-      <div className="no-print mb-3 flex flex-wrap gap-2 text-sm">
-        <select
-          className="rounded-lg border border-[#d9c9a3] px-2 py-1"
+      <div className="no-print mb-3 flex flex-wrap gap-2">
+        <Select
+          className="min-w-[11.5rem] flex-1 sm:max-w-xs"
           value={schoolFilter}
-          onChange={(e) => setSchoolFilter(e.target.value)}
-        >
-          <option value="">Todas las escuelas</option>
-          {stats.schools.map((s) => (
-            <option key={s.id} value={s.shortName}>
-              {s.shortName}
-            </option>
-          ))}
-        </select>
-        <select
-          className="rounded-lg border border-[#d9c9a3] px-2 py-1"
+          onChange={setSchoolFilter}
+          options={[
+            { value: "", label: "Todas las escuelas" },
+            ...stats.schools.map((s) => ({ value: s.shortName, label: s.shortName })),
+          ]}
+        />
+        <Select
+          className="min-w-[13rem] flex-1 sm:max-w-xs"
           value={ackFilter}
-          onChange={(e) => setAckFilter(e.target.value)}
-        >
-          <option value="">Todo estado de firma</option>
-          <option value="pendiente">Pendiente</option>
-          <option value="de_acuerdo">De acuerdo</option>
-          <option value="en_desacuerdo">En desacuerdo</option>
-          <option value="nueva_revision">Nueva revisión</option>
-        </select>
+          onChange={setAckFilter}
+          options={[
+            { value: "", label: "Todo estado de firma" },
+            { value: "pendiente", label: "Pendiente" },
+            { value: "de_acuerdo", label: "De acuerdo" },
+            { value: "en_desacuerdo", label: "En desacuerdo" },
+            { value: "nueva_revision", label: "Nueva revisión" },
+          ]}
+        />
       </div>
       <ul className="space-y-2">
         {teachers

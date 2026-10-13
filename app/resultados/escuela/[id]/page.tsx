@@ -7,6 +7,7 @@ import { Bar } from "@/components/Bar";
 import { InstitutionHeader } from "@/components/InstitutionHeader";
 import { ItemStatsPanel } from "@/components/ItemStatsPanel";
 import { Loading } from "@/components/Loading";
+import { Select } from "@/components/Select";
 import { ShareActions } from "@/components/ShareActions";
 import { folderYesPercent, type FolderPayload } from "@/lib/folder-form";
 import { visitYesPercent, type VisitPayload } from "@/lib/visit-form";
@@ -90,19 +91,17 @@ export default function EscuelaPage() {
         }
       />
       <div className="no-print mb-4">
-        <label className="text-sm font-medium">Ver{" "}
-          <select
-            className="ml-2 rounded-lg border border-[#d9c9a3] px-2 py-1"
+        <label className="block text-sm font-medium">
+          Ver
+          <Select
+            className="mt-1"
             value={view}
-            onChange={(e) => setView(e.target.value)}
-          >
-            <option value="escuela">Resultados globales de la escuela</option>
-            {teachers.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
+            onChange={setView}
+            options={[
+              { value: "escuela", label: "Resultados globales de la escuela" },
+              ...teachers.map((t) => ({ value: t.id, label: t.name })),
+            ]}
+          />
         </label>
       </div>
       <div className="mb-6 rounded-2xl bg-[#fffdf8] p-5 ring-1 ring-[#e6dcc8]">

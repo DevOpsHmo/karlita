@@ -1,5 +1,8 @@
-﻿import type { ChartBar, ChartCard } from "@/lib/item-stats";
+﻿"use client";
+
+import type { ChartBar, ChartCard } from "@/lib/item-stats";
 import { CHART_KIND_LABELS, type ChartKind } from "@/lib/chart-prefs";
+import { Select } from "@/components/Select";
 
 const HEX: Record<NonNullable<ChartBar["color"]>, string> = {
   yes: "#6a0938",
@@ -138,19 +141,17 @@ export function ItemChart({
           </p>
         </div>
         {onKind && (
-          <label className="no-print text-xs">
-            Gráfica{" "}
-            <select
-              className="rounded border border-[#d9c9a3] px-1 py-0.5"
+          <label className="no-print w-36 text-xs">
+            Gráfica
+            <Select
+              className="mt-1"
               value={kind}
-              onChange={(e) => onKind(card.id, e.target.value as ChartKind)}
-            >
-              {(Object.keys(CHART_KIND_LABELS) as ChartKind[]).map((k) => (
-                <option key={k} value={k}>
-                  {CHART_KIND_LABELS[k]}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => onKind(card.id, v as ChartKind)}
+              options={(Object.keys(CHART_KIND_LABELS) as ChartKind[]).map((k) => ({
+                value: k,
+                label: CHART_KIND_LABELS[k],
+              }))}
+            />
           </label>
         )}
       </div>

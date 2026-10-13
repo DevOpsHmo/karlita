@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ItemChart } from "@/components/ItemChart";
+import { Select } from "@/components/Select";
 import {
   CHART_KIND_LABELS,
   kindFor,
@@ -117,19 +118,17 @@ export function ItemStatsPanel({
         >
           Acompañamiento
         </button>
-        <label className="ml-auto text-sm">
-          Todas las gráficas{" "}
-          <select
-            className="cursor-pointer rounded-lg border border-[#d9c9a3] px-2 py-1"
+        <label className="ml-auto w-full text-sm sm:w-56">
+          Todas las gráficas
+          <Select
+            className="mt-1"
             value={prefs.defaultKind}
-            onChange={(e) => setDefault(e.target.value as ChartKind)}
-          >
-            {(Object.keys(CHART_KIND_LABELS) as ChartKind[]).map((k) => (
-              <option key={k} value={k}>
-                {CHART_KIND_LABELS[k]}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => setDefault(v as ChartKind)}
+            options={(Object.keys(CHART_KIND_LABELS) as ChartKind[]).map((k) => ({
+              value: k,
+              label: CHART_KIND_LABELS[k],
+            }))}
+          />
         </label>
       </div>
       <p className="no-print mb-3 text-xs text-[#5a6b5e]">

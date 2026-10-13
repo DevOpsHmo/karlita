@@ -31,6 +31,7 @@ export function TeacherSelect({
   const [newName, setNewName] = useState("");
   const [newDisc, setNewDisc] = useState("");
   const [newTurno, setNewTurno] = useState("Matutino");
+  const [newSchoolId, setNewSchoolId] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -55,13 +56,14 @@ export function TeacherSelect({
   }, [teacherId, teachers, onTeacherMeta]);
 
   async function createTeacher() {
-    if (!schoolId || !newName.trim() || saving) return;
+    const sid = newSchoolId || schoolId;
+    if (!sid || !newName.trim() || saving) return;
     setSaving(true);
     const res = await fetch("/api/teachers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        schoolId,
+        schoolId: sid,
         name: newName,
         disciplina: newDisc,
         turno: newTurno,
@@ -74,6 +76,7 @@ export function TeacherSelect({
       if (prev.some((x) => x.id === t.id)) return prev;
       return [...prev, t].sort((a, b) => a.name.localeCompare(b.name));
     });
+    if (sid !== schoolId) onSchool(sid);
     onTeacher(t.id);
     setCreating(false);
     setNewName("");
@@ -110,14 +113,23 @@ export function TeacherSelect({
         {!creating ? (
           <button
             type="button"
-            className="text-sm text-[#6a0938] underline"
-            onClick={() => setCreating(true)}
-            disabled={!schoolId}
+            className="cursor-pointer text-sm text-[#6a0938] underline"
+            onClick={() => {
+              setNewSchoolId(schoolId);
+              setCreating(true);
+            }}
           >
             + Registrar docente nuevo en esta visita
           </button>
         ) : (
           <div className="grid gap-2 rounded-xl border border-dashed border-[#c4a35a] bg-white p-3 sm:grid-cols-4">
+            <Select
+              className="sm:col-span-4"
+              value={newSchoolId}
+              placeholder="Escuela del docente…"
+              onChange={setNewSchoolId}
+              options={schools.map((s) => ({ value: s.id, label: `${s.shortName} · ${s.cct}` }))}
+            />
             <input
               className="rounded-lg border border-[#d9c9a3] px-3 py-2 sm:col-span-2"
               placeholder="Nombre del docente"
@@ -135,8 +147,8 @@ export function TeacherSelect({
               <button
                 type="button"
                 onClick={createTeacher}
-                disabled={saving}
-                className="rounded-lg bg-[#6a0938] px-3 py-2 text-sm text-white disabled:opacity-60"
+                disabled={saving || !newSchoolId || !newName.trim()}
+                className="cursor-pointer rounded-lg bg-[#6a0938] px-3 py-2 text-sm text-white disabled:opacity-60"
               >
                 Guardar docente
               </button>
