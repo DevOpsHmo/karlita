@@ -56,7 +56,12 @@ export function Select({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listId}
-        onClick={() => !disabled && setOpen((v) => !v)}
+        onClick={(e) => e.preventDefault()}
+        onPointerDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (!disabled) setOpen((v) => !v);
+        }}
         className={`flex w-full items-center justify-between gap-2 rounded-xl border bg-[#fffdf8] px-3 py-2.5 text-left text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] transition ${
           disabled
             ? "cursor-not-allowed border-[#e6dcc8] text-[#9aa89c]"
@@ -98,7 +103,10 @@ export function Select({
                   className={`flex w-full items-center justify-between px-3 py-2.5 text-left text-sm transition ${
                     active ? "bg-[#6a0938] text-white" : "text-[#6a0938] hover:bg-[#f4efe3]"
                   }`}
-                  onClick={() => {
+                  onClick={(e) => e.preventDefault()}
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     onChange(opt.value);
                     setOpen(false);
                   }}

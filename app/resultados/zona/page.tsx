@@ -23,14 +23,10 @@ type Stats = {
 
 export default function ZonaPage() {
   const [stats, setStats] = useState<Stats | null>(null);
-  const [audit, setAudit] = useState<{ at: string; actor: string; action: string; detail: string }[]>([]);
   useEffect(() => {
     fetch("/api/stats")
       .then((r) => r.json())
       .then(setStats);
-    fetch("/api/audit")
-      .then((r) => r.json())
-      .then(setAudit);
   }, []);
   if (!stats) return <Loading />;
 
@@ -62,18 +58,6 @@ export default function ZonaPage() {
           <Bar label="Observación" pct={s.visitPct} />
         </section>
       ))}
-      {audit.length > 0 && (
-        <section className="no-print mt-6 rounded-2xl bg-[#fffdf8] p-4 text-sm ring-1 ring-[#e6dcc8]">
-          <h3 className="mb-2 font-semibold">Bitácora</h3>
-          <ul className="space-y-1">
-            {audit.slice(0, 20).map((e) => (
-              <li key={e.at + e.action}>
-                {new Date(e.at).toLocaleString("es-MX")} · {e.actor} · {e.action} · {e.detail}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
     </main>
   );
 }
