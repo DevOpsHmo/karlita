@@ -70,7 +70,7 @@ export function Nav() {
                 key={l.href}
                 href={l.href}
                 className={`rounded-full px-3 py-1 ${
-                  pathname === l.href ? "bg-[#c4a35a] text-[#6a0938]" : "bg-white/10 hover:bg-white/20"
+                  pathname === l.href ? "bg-[#c4a35a] text-white" : "bg-white/10 hover:bg-white/20"
                 }`}
               >
                 {l.label}
