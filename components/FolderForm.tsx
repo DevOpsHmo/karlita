@@ -83,6 +83,10 @@ export function FolderForm({
       setError("Seleccione o registre un docente.");
       return;
     }
+    if (!payload.firmaDataUrl?.startsWith("data:image")) {
+      setError("Firme la revisión antes de guardar.");
+      return;
+    }
     setSaving(true);
     const url = reviewId ? `/api/folder-reviews/${reviewId}` : "/api/folder-reviews";
     const res = await fetch(url, {
@@ -286,7 +290,7 @@ export function FolderForm({
                 type="button"
                 className="mt-2 cursor-pointer text-sm text-[#6a0938] underline"
                 onClick={() => {
-                  setSignName(payload.firmaNombre);
+                  setSignName(payload.verificadorNombre || payload.firmaNombre);
                   setSignPad("");
                   setSignOpen(true);
                 }}
@@ -299,7 +303,7 @@ export function FolderForm({
               type="button"
               className="cursor-pointer rounded-xl bg-[#6a0938] px-6 py-2.5 font-semibold text-white"
               onClick={() => {
-                setSignName(payload.firmaNombre);
+                setSignName(payload.verificadorNombre || payload.firmaNombre);
                 setSignPad("");
                 setSignOpen(true);
               }}
@@ -312,11 +316,11 @@ export function FolderForm({
 
       {signOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
           onClick={() => setSignOpen(false)}
         >
           <div
-            className="w-full max-w-md rounded-2xl bg-[#fffdf8] p-5 ring-1 ring-[#e6dcc8]"
+            className="w-full max-w-md max-h-[90dvh] overflow-y-auto rounded-2xl bg-[#fffdf8] p-5 ring-1 ring-[#e6dcc8]"
             onClick={(e) => e.stopPropagation()}
           >
             <p className="mb-3 font-semibold text-[#6a0938]">Firmar revisión de carpeta</p>
@@ -326,7 +330,7 @@ export function FolderForm({
                 className="mt-1 w-full rounded-lg border border-[#d9c9a3] px-3 py-2"
                 value={signName}
                 onChange={(e) => setSignName(e.target.value)}
-                placeholder="Escriba su nombre"
+                placeholder="Nombre del verificador"
                 autoFocus
               />
             </label>
@@ -343,6 +347,7 @@ export function FolderForm({
                     firmaNombre: signName.trim(),
                     firmaDataUrl: signPad,
                     firmaDocente: signName.trim(),
+                    verificadorNombre: signName.trim(),
                   });
                   setSignOpen(false);
                 }}
@@ -358,10 +363,13 @@ export function FolderForm({
       )}
       {error && <p className="text-sm text-red-700">{error}</p>}
       <div className="h-20" />
-      <div className="no-print fixed inset-x-0 bottom-0 z-30 flex justify-center border-t border-[#d9c9a3] bg-[#fffdf8] px-4 py-3">
+      <div className="no-print fixed inset-x-0 bottom-0 z-30 flex flex-col items-center border-t border-[#d9c9a3] bg-[#fffdf8] px-4 py-3">
+        {!payload.firmaDataUrl?.startsWith("data:image") && (
+          <p className="mb-2 text-center text-xs text-[#6a0938]">Firme para poder guardar.</p>
+        )}
         <button
           type="submit"
-          disabled={saving}
+          disabled={saving || !payload.firmaDataUrl?.startsWith("data:image")}
           className="cursor-pointer rounded-xl bg-[#6a0938] px-6 py-2.5 font-semibold text-white disabled:opacity-60"
         >
           {saving ? "Guardando…" : "Guardar revisión"}

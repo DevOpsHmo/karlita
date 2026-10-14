@@ -27,8 +27,12 @@ export async function POST(request: NextRequest) {
   if (settings.closedPeriods.length === 3) {
     return NextResponse.json({ error: "Los tres periodos están cerrados." }, { status: 403 });
   }
+  const payload = body.payload ?? {};
+  if (!String(payload.firmaDataUrl ?? "").startsWith("data:image")) {
+    return NextResponse.json({ error: "Firme la revisión antes de guardar." }, { status: 400 });
+  }
   try {
-    const row = await saveFolderReview(teacherId, body.payload ?? {}, undefined, { actor: user?.email });
+    const row = await saveFolderReview(teacherId, payload, undefined, { actor: user?.email });
     return NextResponse.json(row);
   } catch (e) {
     if ((e as Error).message === "CONFLICT") {

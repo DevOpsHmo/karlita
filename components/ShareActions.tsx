@@ -17,7 +17,7 @@ export function ShareActions({
   includeAckLink?: boolean;
   signature?: SignaturePreview | null;
 }) {
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<"pdf" | "wa" | null>(null);
 
   async function resolveShare() {
     const chartPrefs = (() => {
@@ -37,7 +37,13 @@ export function ShareActions({
     return {
       report: publicUrl(json.path as string),
       pdfUrl: (json.pdfUrl as string) || "",
+      pdfName: sanitizePdfName((json.pdfName as string) || ""),
     };
+  }
+
+  function sanitizePdfName(name: string) {
+    const cleaned = name.replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim();
+    return cleaned.toLowerCase().endsWith(".pdf") ? cleaned : cleaned ? `${cleaned}.pdf` : "";
   }
 
   async function pdfFile(pdfUrl: string, filename: string) {
@@ -56,12 +62,15 @@ export function ShareActions({
   }
 
   async function downloadPdf() {
-    setBusy(true);
+    setBusy("pdf");
     const share = await resolveShare();
-    setBusy(false);
+    setBusy(null);
     if (!share) return;
     if (share.pdfUrl) {
-      const file = await pdfFile(share.pdfUrl, includeAckLink ? "ficha-maestro.pdf" : "resultados-zona-x.pdf");
+      const file = await pdfFile(
+        share.pdfUrl,
+        share.pdfName || (includeAckLink ? "ficha-maestro.pdf" : "resultados-zona-x.pdf")
+      );
       if (file) saveFile(file);
       else window.open(share.pdfUrl, "_blank");
       return;
@@ -70,16 +79,16 @@ export function ShareActions({
   }
 
   async function send() {
-    setBusy(true);
+    setBusy("wa");
     const share = await resolveShare();
     if (!share) {
-      setBusy(false);
+      setBusy(null);
       return;
     }
-    const filename = includeAckLink ? "ficha-maestro.pdf" : "resultados-zona-x.pdf";
+    const filename = share.pdfName || (includeAckLink ? "ficha-maestro.pdf" : "resultados-zona-x.pdf");
     let file: File | null = null;
     if (share.pdfUrl) file = await pdfFile(share.pdfUrl, filename);
-    setBusy(false);
+    setBusy(null);
 
     const caption = includeAckLink
       ? `${message.trim()}\n\nIndique si está de acuerdo (Sí o No) y firme aquí:\n${share.report}/firma`
@@ -110,20 +119,20 @@ export function ShareActions({
         <button
           type="button"
           onClick={downloadPdf}
-          disabled={busy}
+          disabled={busy === "pdf"}
           className="cursor-pointer rounded-md bg-[#6a0938] px-2.5 py-1 text-[11px] leading-tight text-white disabled:cursor-wait sm:rounded-lg sm:px-4 sm:py-2 sm:text-sm"
         >
-          {busy ? "Preparando…" : "Descargar PDF"}
+          {busy === "pdf" ? "Preparando…" : "Descargar PDF"}
         </button>
       )}
       <button
         type="button"
         onClick={send}
-        disabled={busy}
+        disabled={busy === "wa"}
         className="cursor-pointer rounded-md px-2.5 py-1 text-[11px] font-medium leading-tight disabled:cursor-wait sm:rounded-lg sm:px-4 sm:py-2 sm:text-sm"
         style={{ backgroundColor: "#25D366", color: "#ffffff" }}
       >
-        {busy ? "Preparando…" : "Enviar por WhatsApp"}
+        {busy === "wa" ? "Preparando…" : "Enviar por WhatsApp"}
       </button>
       {includeAckLink && <ViewSignatureButton signature={signature} />}
     </div>

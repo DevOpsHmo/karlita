@@ -9,7 +9,7 @@ import { ShareActions } from "@/components/ShareActions";
 import { InstitutionHeader } from "@/components/InstitutionHeader";
 import { Loading } from "@/components/Loading";
 import { ACK_CLASS, ACK_LABELS } from "@/lib/ack-labels";
-import { FOLDER_ITEMS, folderYesPercent, type FolderPayload } from "@/lib/folder-form";
+import { folderYesPercent, type FolderPayload } from "@/lib/folder-form";
 import { visitYesPercent, type VisitPayload } from "@/lib/visit-form";
 
 type Teacher = {
@@ -29,6 +29,7 @@ export default function MaestroPage() {
     status: keyof typeof ACK_LABELS;
     ack: { agreed: boolean; nombreFirma: string; firmaDataUrl: string; comentario: string; signedAt: string } | null;
   } | null>(null);
+  const [statsKey, setStatsKey] = useState(0);
 
   useEffect(() => {
     fetch(`/api/teachers/${id}`)
@@ -45,19 +46,26 @@ export default function MaestroPage() {
       .then((rows) => setAckRow(rows.find((x: { teacherId: string }) => x.teacherId === id) ?? null));
   }, [id]);
 
+  async function removeReview(kind: "folder" | "visit", reviewId: string) {
+    const msg =
+      kind === "folder"
+        ? "¿Eliminar esta revisión de carpeta? Podrá capturar una nueva desde cero."
+        : "¿Eliminar esta visita de acompañamiento? Podrá capturar una nueva desde cero.";
+    if (!confirm(msg)) return;
+    const url = kind === "folder" ? `/api/folder-reviews/${reviewId}` : `/api/class-visits/${reviewId}`;
+    const res = await fetch(url, { method: "DELETE" });
+    if (!res.ok) return;
+    if (kind === "folder") setFolders((prev) => prev.filter((f) => f.id !== reviewId));
+    else setVisits((prev) => prev.filter((v) => v.id !== reviewId));
+    setStatsKey((n) => n + 1);
+  }
+
   if (!teacher) return <Loading />;
 
   const lastFolder = folders[0] ? (JSON.parse(folders[0].payload) as FolderPayload) : null;
   const lastVisit = visits[0] ? (JSON.parse(visits[0].payload) as VisitPayload) : null;
   const folderPct = lastFolder ? folderYesPercent(lastFolder).pct : 0;
   const visitPct = lastVisit ? visitYesPercent(lastVisit).pct : 0;
-  const nos =
-    lastFolder
-      ? FOLDER_ITEMS.filter((i) => {
-          const row = lastFolder.items[i.id];
-          return row && (row.p1 === "no" || row.p2 === "no" || row.p3 === "no");
-        })
-      : [];
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
@@ -93,27 +101,20 @@ export default function MaestroPage() {
         message={`Hola ${teacher.name}. Supervisión de Zona X le comparte el resumen de su evaluación (ciclo 2026-2027).`}
       />
       <div className="no-print mb-4 flex flex-wrap gap-2">
-        <Link href={`/carpetas?teacher=${id}`} className="rounded-lg bg-[#c4a35a] px-4 py-2 text-[#6a0938]">
+        <Link href={`/carpetas?teacher=${id}`} className="rounded-lg bg-[#c4a35a] px-4 py-2 font-medium text-white">
           Nueva carpeta
         </Link>
-        <Link href={`/acompanamiento?teacher=${id}`} className="rounded-lg bg-[#c4a35a] px-4 py-2 text-[#6a0938]">
+        <Link href={`/acompanamiento?teacher=${id}`} className="rounded-lg bg-[#c4a35a] px-4 py-2 font-medium text-white">
           Nueva visita
         </Link>
       </div>
       <Bar label="Última revisión de carpetas (% Sí)" pct={folderPct} />
       <Bar label="Última observación de clase (% Sí)" pct={visitPct} />
-      <ItemStatsPanel emptyLabel="Aún no hay revisiones de este maestro." fetchUrl={`/api/item-stats?scope=maestro&id=${id}`} />
-
-      {nos.length > 0 && (
-        <section className="mt-4 rounded-2xl bg-[#fffdf8] p-4 ring-1 ring-[#e6dcc8]">
-          <h3 className="font-semibold">Ítems en No (última carpeta)</h3>
-          <ul className="mt-2 list-disc pl-5 text-sm">
-            {nos.map((i) => (
-              <li key={i.id}>{i.label}</li>
-            ))}
-          </ul>
-        </section>
-      )}
+      <ItemStatsPanel
+        key={statsKey}
+        emptyLabel="Aún no hay revisiones de este maestro."
+        fetchUrl={`/api/item-stats?scope=maestro&id=${id}`}
+      />
 
       {lastFolder?.observacionesGenerales && (
         <p className="mt-3 text-sm">
@@ -129,10 +130,25 @@ export default function MaestroPage() {
       <h3 className="mt-6 font-semibold">Historial de carpetas</h3>
       <ul className="mt-2 space-y-1 text-sm">
         {folders.map((f) => (
-          <li key={f.id}>
+          <li key={f.id} className="flex items-center justify-between gap-2">
             <Link className="text-[#6a0938] underline" href={`/carpetas/${f.id}`}>
               {new Date(f.createdAt).toLocaleDateString("es-MX")} · {folderYesPercent(JSON.parse(f.payload) as FolderPayload).pct}% Sí
             </Link>
+            <button
+              type="button"
+              title="Eliminar revisión"
+              aria-label="Eliminar revisión de carpeta"
+              className="cursor-pointer rounded-lg p-1 text-[#6a0938] hover:bg-[#f8e6ee] hover:text-red-700"
+              onClick={() => removeReview("folder", f.id)}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                <path d="M4 7h16" />
+                <path d="M10 11v6" />
+                <path d="M14 11v6" />
+                <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12" />
+                <path d="M9 7V4h6v3" />
+              </svg>
+            </button>
           </li>
         ))}
         {!folders.length && <li>Sin revisiones aún.</li>}
@@ -140,10 +156,25 @@ export default function MaestroPage() {
       <h3 className="mt-4 font-semibold">Historial de visitas</h3>
       <ul className="mt-2 space-y-1 text-sm">
         {visits.map((v) => (
-          <li key={v.id}>
+          <li key={v.id} className="flex items-center justify-between gap-2">
             <Link className="text-[#6a0938] underline" href={`/acompanamiento/${v.id}`}>
               {new Date(v.createdAt).toLocaleDateString("es-MX")} · {visitYesPercent(JSON.parse(v.payload) as VisitPayload).pct}% Sí
             </Link>
+            <button
+              type="button"
+              title="Eliminar visita"
+              aria-label="Eliminar visita"
+              className="cursor-pointer rounded-lg p-1 text-[#6a0938] hover:bg-[#f8e6ee] hover:text-red-700"
+              onClick={() => removeReview("visit", v.id)}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                <path d="M4 7h16" />
+                <path d="M10 11v6" />
+                <path d="M14 11v6" />
+                <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12" />
+                <path d="M9 7V4h6v3" />
+              </svg>
+            </button>
           </li>
         ))}
         {!visits.length && <li>Sin visitas aún.</li>}

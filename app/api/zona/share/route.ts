@@ -11,6 +11,7 @@ export async function POST(request: NextRequest) {
       path: `/r/zona/${token}`,
       title: "Resultados grupales de zona",
       subtitle: "EST 6, 60 y 72",
+      extra: { pdfName: "Resultados Zona X.pdf" },
       chartPrefs: prefsFromBody(body),
     })
   );

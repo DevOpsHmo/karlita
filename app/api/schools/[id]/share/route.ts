@@ -14,6 +14,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       title: `Resultados · ${school.shortName}`,
       subtitle: school.cct,
       schoolId: id,
+      extra: { pdfName: `Resultados ${school.shortName}.pdf` },
       chartPrefs: prefsFromBody(body),
     })
   );

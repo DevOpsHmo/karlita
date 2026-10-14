@@ -10,6 +10,12 @@ const HEX = {
   green: rgb(0.416, 0.035, 0.22),
 };
 
+const PAGE_W = 612;
+const PAGE_H = 792;
+const TOP = 750;
+const BOTTOM = 52;
+const MAX_W = 500;
+
 function colorOf(bar: ChartBar) {
   return HEX[bar.color ?? "green"];
 }
@@ -24,53 +30,83 @@ export async function buildStatsPdf(
   const doc = await PDFDocument.create();
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
-  const ctx = { page: doc.addPage([612, 792]), y: 750 };
+  const ctx = { page: doc.addPage([PAGE_W, PAGE_H]), y: TOP };
   const resolved: ChartPrefs = prefs ?? { defaultKind: "bars", byId: {} };
 
+  const newPage = () => {
+    ctx.page = doc.addPage([PAGE_W, PAGE_H]);
+    ctx.y = TOP;
+  };
+
   const ensure = (need: number) => {
-    if (ctx.y < need) {
-      ctx.page = doc.addPage([612, 792]);
-      ctx.y = 750;
+    if (ctx.y - need < BOTTOM) newPage();
+  };
+
+  const wrap = (value: string, size: number, f: PDFFont) => {
+    const words = value.split(/\s+/);
+    const lines: string[] = [];
+    let line = "";
+    for (const w of words) {
+      const test = line ? `${line} ${w}` : w;
+      if (f.widthOfTextAtSize(test, size) > MAX_W) {
+        if (line) lines.push(line);
+        line = w;
+      } else line = test;
+    }
+    if (line) lines.push(line);
+    return lines.length ? lines : [value];
+  };
+
+  const write = (value: string, size: number, f: PDFFont, color = rgb(0.416, 0.035, 0.22), indent = 50) => {
+    for (const line of wrap(value, size, f)) {
+      ensure(size + 8);
+      ctx.page.drawText(line, { x: indent, y: ctx.y, size, font: f, color });
+      ctx.y -= size + 6;
     }
   };
 
-  const text = (value: string, size: number, f: PDFFont, color = rgb(0.416, 0.035, 0.22)) => {
-    ensure(24);
-    ctx.page.drawText(value.slice(0, 100), { x: 50, y: ctx.y, size, font: f, color });
-    ctx.y -= size + 6;
+  const setH = (bars: ChartBar[], kind: ChartKind, heading?: string) => {
+    let h = heading ? 16 : 0;
+    if (kind === "pie") h += 90 + bars.length * 16;
+    else if (kind === "table") h += 16 + bars.length * 16;
+    else h += bars.length * 24;
+    return h;
+  };
+
+  const cardH = (card: ChartCard) => {
+    if (card.kind === "text") return 22 + wrap(card.title, 10, bold).length * 16 + (card.texts ?? []).length * 16;
+    const kind = kindFor(resolved, card.id);
+    let h = wrap(`${card.title}`, 10, bold).length * 16 + 8;
+    for (const g of card.groups ?? []) h += setH(g.bars, kind, g.name);
+    if (card.bars) h += setH(card.bars, kind);
+    h += (card.texts ?? []).length * 16;
+    return h + 10;
   };
 
   const drawBars = (bars: ChartBar[]) => {
     const total = bars.reduce((a, b) => a + b.count, 0) || 1;
     for (const bar of bars) {
-      ensure(22);
       const pct = bar.count / total;
-      ctx.page.drawText(`${bar.label}: ${bar.count} (${Math.round(pct * 100)}%)`, {
-        x: 58,
-        y: ctx.y,
-        size: 9,
-        font,
-        color: rgb(0.2, 0.2, 0.2),
-      });
-      ctx.y -= 12;
+      write(`${bar.label}: ${bar.count} (${Math.round(pct * 100)}%)`, 9, font, rgb(0.2, 0.2, 0.2), 58);
+      ensure(14);
       ctx.page.drawRectangle({ x: 58, y: ctx.y, width: 400, height: 6, color: rgb(0.91, 0.88, 0.82) });
       ctx.page.drawRectangle({ x: 58, y: ctx.y, width: Math.max(2, 400 * pct), height: 6, color: colorOf(bar) });
-      ctx.y -= 10;
+      ctx.y -= 12;
     }
   };
 
   const drawTable = (bars: ChartBar[]) => {
     const total = bars.reduce((a, b) => a + b.count, 0) || 1;
-    text("Opción          Conteo     %", 9, bold, rgb(0.2, 0.2, 0.2));
+    write("Opción          Conteo     %", 9, bold, rgb(0.2, 0.2, 0.2), 58);
     for (const bar of bars) {
-      text(`${bar.label}: ${bar.count}   ${Math.round((bar.count / total) * 100)}%`, 9, font, rgb(0.25, 0.25, 0.25));
+      write(`${bar.label}: ${bar.count}   ${Math.round((bar.count / total) * 100)}%`, 9, font, rgb(0.25, 0.25, 0.25), 58);
     }
   };
 
   const drawPie = (bars: ChartBar[]) => {
     const total = bars.reduce((a, b) => a + b.count, 0);
     if (!total) {
-      text("Sin datos", 9, font);
+      write("Sin datos", 9, font, rgb(0.25, 0.25, 0.25), 58);
       return;
     }
     ensure(90);
@@ -92,40 +128,43 @@ export async function buildStatsPdf(
     }
     ctx.y -= 88;
     for (const bar of bars) {
-      text(`${bar.label}: ${bar.count} (${Math.round((bar.count / total) * 100)}%)`, 9, font, rgb(0.25, 0.25, 0.25));
+      write(`${bar.label}: ${bar.count} (${Math.round((bar.count / total) * 100)}%)`, 9, font, rgb(0.25, 0.25, 0.25), 58);
     }
   };
 
   const drawSet = (bars: ChartBar[], kind: ChartKind, heading?: string) => {
-    if (heading) text(heading, 9, bold, rgb(0.416, 0.035, 0.22));
+    ensure(setH(bars, kind, heading));
+    if (heading) write(heading, 9, bold, rgb(0.416, 0.035, 0.22), 50);
     if (kind === "table") drawTable(bars);
     else if (kind === "pie") drawPie(bars);
     else drawBars(bars);
   };
 
   const cardBlock = (card: ChartCard) => {
+    const needed = Math.min(cardH(card), TOP - BOTTOM - 8);
+    ensure(needed);
     if (card.kind === "text") {
-      text(card.title, 10, bold);
-      for (const t of (card.texts ?? []).slice(0, 8)) text(`• ${t}`, 9, font, rgb(0.25, 0.25, 0.25));
-      ctx.y -= 6;
+      write(card.title, 10, bold);
+      for (const t of card.texts ?? []) write(`• ${t}`, 9, font, rgb(0.25, 0.25, 0.25), 58);
+      ctx.y -= 8;
       return;
     }
     const kind = kindFor(resolved, card.id);
-    ensure(90);
-    text(`${card.title}  [${kind}]`, 10, bold);
-    card.groups?.forEach((g) => drawSet(g.bars, kind, g.name));
+    write(card.title, 10, bold);
+    for (const g of card.groups ?? []) drawSet(g.bars, kind, g.name);
     if (card.bars) drawSet(card.bars, kind);
-    card.schoolBreakdown?.forEach((s) => drawSet(s.bars, kind, s.name));
-    ctx.y -= 8;
+    for (const note of card.texts ?? []) write(`Obs: ${note}`, 9, font, rgb(0.25, 0.25, 0.25), 58);
+    ctx.y -= 10;
   };
 
-  text("Supervisión de Zona X · Ciclo 2026-2027", 11, bold);
-  text(title, 16, bold);
-  text(subtitle, 10, font, rgb(0.3, 0.3, 0.3));
+  write("Supervisión de Zona X · Ciclo 2026-2027", 11, bold);
+  write(title, 16, bold);
+  write(subtitle, 10, font, rgb(0.3, 0.3, 0.3));
   ctx.y -= 8;
-  text("Carpetas", 13, bold);
+  write("Carpetas", 13, bold);
   carpetas.forEach(cardBlock);
-  text("Acompañamiento", 13, bold);
+  ensure(40);
+  write("Acompañamiento", 13, bold);
   acomp.forEach(cardBlock);
   return Buffer.from(await doc.save());
 }

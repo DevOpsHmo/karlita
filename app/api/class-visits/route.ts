@@ -15,6 +15,9 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const user = await currentUser();
   const payload = (body.payload ?? {}) as VisitPayload;
+  if (!String(payload.firmaDataUrl ?? "").startsWith("data:image")) {
+    return NextResponse.json({ error: "Firme la observación antes de guardar." }, { status: 400 });
+  }
   const period = visitPeriodFromDate(payload.fecha);
   const settings = await getSettings();
   if (period && settings.closedPeriods.includes(period)) {

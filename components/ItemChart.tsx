@@ -91,7 +91,7 @@ function PieView({ bars }: { bars: ChartBar[] }) {
 
 function Block({ bars, kind, title }: { bars: ChartBar[]; kind: ChartKind; title?: string }) {
   return (
-    <div className="mb-3">
+    <div className="mb-3 print-keep">
       {title && <p className="mb-1 text-sm font-medium text-[#6a0938]">{title}</p>}
       {kind === "table" && <TableView bars={bars} />}
       {kind === "pie" && <PieView bars={bars} />}
@@ -165,6 +165,16 @@ export function ItemChart({
           {card.schoolBreakdown.map((s) => (
             <Block key={s.name} bars={s.bars} kind={kind} title={s.name} />
           ))}
+        </div>
+      )}
+      {!!card.texts?.length && (
+        <div className="mt-3 border-t border-[#e6dcc8] pt-3">
+          <p className="mb-1 text-xs font-semibold text-[#6a0938]">Notas y observaciones</p>
+          <ul className="list-disc space-y-1 pl-5 text-sm">
+            {card.texts.map((t, i) => (
+              <li key={i}>{t}</li>
+            ))}
+          </ul>
         </div>
       )}
     </article>

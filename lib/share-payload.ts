@@ -25,6 +25,7 @@ export async function shareBundle(opts: {
     path: opts.path,
     pdfUrl,
     reportUrl: publicUrl(opts.path),
+    pdfName: opts.extra?.pdfName,
     ...opts.extra,
   };
 }

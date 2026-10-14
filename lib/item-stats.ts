@@ -73,6 +73,10 @@ export function folderCards(rows: RecordRow[], period?: Period | null): ChartCar
     });
     const responses = groups.reduce((a, g) => a + g.bars.reduce((b, x) => b + x.count, 0), 0);
     const dates = [...new Set(rows.map((r) => r.createdAt.slice(0, 10)))].sort();
+    const texts = rows
+      .map((row) => parseFolder(row)?.items?.[item.id]?.observaciones ?? "")
+      .map((t) => t.trim())
+      .filter(Boolean);
     const schoolBreakdown = breakdownBySchool(rows, (row) => {
       const p = parseFolder(row);
       let si = 0;
@@ -84,7 +88,7 @@ export function folderCards(rows: RecordRow[], period?: Period | null): ChartCar
       }
       return { si, no };
     });
-    return { id: item.id, title: item.label, kind: "bars", groups, responses, dates, schoolBreakdown };
+    return { id: item.id, title: item.label, kind: "bars", groups, responses, dates, schoolBreakdown, texts };
   });
 }
 
@@ -109,7 +113,11 @@ function breakdownBySchool(
   }));
 }
 
-function yesNoCard(id: string, title: string, values: string[]): ChartCard {
+function notesOf(texts: string[]) {
+  return texts.map((t) => t.trim()).filter(Boolean);
+}
+
+function yesNoCard(id: string, title: string, values: string[], notes: string[] = []): ChartCard {
   let si = 0;
   let no = 0;
   for (const v of values) {
@@ -125,17 +133,18 @@ function yesNoCard(id: string, title: string, values: string[]): ChartCard {
       { label: "No", count: no, color: "no" },
     ],
     responses: si + no,
+    texts: notesOf(notes),
   };
 }
 
-function choiceCard(id: string, title: string, values: string[], order: string[]): ChartCard {
+function choiceCard(id: string, title: string, values: string[], order: string[], notes: string[] = []): ChartCard {
   const map: Record<string, number> = {};
   for (const v of values) add(map, v);
   const bars = barsFrom(map, order, Object.fromEntries(order.map((o) => [o, "gold" as const])));
-  return { id, title, kind: "bars", bars, responses: values.filter(Boolean).length };
+  return { id, title, kind: "bars", bars, responses: values.filter(Boolean).length, texts: notesOf(notes) };
 }
 
-function multiCard(id: string, title: string, lists: string[][], order: string[]): ChartCard {
+function multiCard(id: string, title: string, lists: string[][], order: string[], notes: string[] = []): ChartCard {
   const map: Record<string, number> = {};
   let responses = 0;
   for (const list of lists) {
@@ -148,6 +157,7 @@ function multiCard(id: string, title: string, lists: string[][], order: string[]
     kind: "bars",
     bars: barsFrom(map, order, Object.fromEntries(order.map((o) => [o, "green" as const]))),
     responses,
+    texts: notesOf(notes),
   };
 }
 
@@ -163,13 +173,14 @@ export function visitCards(rows: RecordRow[]): { charts: ChartCard[]; texts: Cha
   const yn = (pick: (p: VisitPayload) => string) => payloads.map(pick);
 
   const charts: ChartCard[] = [
-    yesNoCard("puntual", "¿Está puntual en el salón de clases?", yn((p) => p.puntual)),
-    yesNoCard("asistencia", "¿Registró la asistencia de los alumnos?", yn((p) => p.asistencia)),
+    yesNoCard("puntual", "¿Está puntual en el salón de clases?", yn((p) => p.puntual), yn((p) => p.puntualObs)),
+    yesNoCard("asistencia", "¿Registró la asistencia de los alumnos?", yn((p) => p.asistencia), yn((p) => p.asistenciaObs)),
     multiCard(
       "aperturaAntes",
       "Actividades antes de iniciar la clase",
       payloads.map((p) => p.aperturaAntes ?? []),
-      ["Revisa tareas", "Da a conocer información", "Organiza algún evento"]
+      ["Revisa tareas", "Da a conocer información", "Organiza algún evento"],
+      yn((p) => p.aperturaAntesOtra)
     ),
     multiCard(
       "aperturaInicio",
@@ -182,18 +193,30 @@ export function visitCards(rows: RecordRow[]): { charts: ChartCard[]; texts: Cha
         "Recuerda lo visto en la clase anterior",
         "Utiliza música o video",
         "Plantea un juego",
-      ]
+      ],
+      yn((p) => p.aperturaInicioOtra)
     ),
     yesNoCard(
       "cteProyectos",
       "¿Desarrolla estrategias de CTE / metodologías de proyectos?",
-      yn((p) => p.cteProyectos)
+      yn((p) => p.cteProyectos),
+      yn((p) => p.cteProyectosObs)
     ),
     ...ALUMNO_ACTIVITIES.map((a) =>
-      yesNoCard(`alumno-${a.id}`, a.label, payloads.map((p) => p.alumnos?.[a.id]?.valor ?? ""))
+      yesNoCard(
+        `alumno-${a.id}`,
+        a.label,
+        payloads.map((p) => p.alumnos?.[a.id]?.valor ?? ""),
+        payloads.map((p) => p.alumnos?.[a.id]?.obs ?? "")
+      )
     ),
     ...CIERRE_ITEMS.map((c) =>
-      yesNoCard(`cierre-${c.id}`, c.label, payloads.map((p) => p.cierre?.[c.id]?.valor ?? ""))
+      yesNoCard(
+        `cierre-${c.id}`,
+        c.label,
+        payloads.map((p) => p.cierre?.[c.id]?.valor ?? ""),
+        payloads.map((p) => p.cierre?.[c.id]?.obs ?? "")
+      )
     ),
     choiceCard(
       "salud",
@@ -211,7 +234,8 @@ export function visitCards(rows: RecordRow[]): { charts: ChartCard[]; texts: Cha
       "relacion",
       "Relación maestro-alumno",
       yn((p) => p.relacion),
-      ["De respeto", "De pares", "Irrespetuosa", "Otra"]
+      ["De respeto", "De pares", "Irrespetuosa", "Otra"],
+      yn((p) => p.relacionOtra)
     ),
     yesNoCard("programaAnalitico", "¿Cuenta con el programa analítico de su disciplina?", yn((p) => p.programaAnalitico)),
     yesNoCard("planeacionActualizada", "¿Tiene la planeación didáctica actualizada en el salón?", yn((p) => p.planeacionActualizada)),
@@ -272,7 +296,7 @@ export async function computeItemStats(opts: {
     classVisits: visits.length,
     empty: folders.length === 0 && visits.length === 0,
     carpetas: folderCards(folders, opts.period),
-    acompanamiento: visit.charts,
-    textos: [...visit.texts, folderTexts],
+    acompanamiento: [...visit.charts, ...visit.texts],
+    textos: [folderTexts],
   };
 }

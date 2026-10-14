@@ -41,11 +41,16 @@ body {
     content: none !important;
   }
   .item-chart {
-    display: inline-block;
+    display: block;
     width: 100%;
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+  .item-chart h4,
+  .print-keep {
     break-inside: avoid;
     page-break-inside: avoid;
-    -webkit-column-break-inside: avoid;
+    break-after: avoid;
   }
   .print-charts-all {
     display: block !important;

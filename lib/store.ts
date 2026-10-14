@@ -361,6 +361,11 @@ export async function saveFolderReview(
   return withTeacher(row);
 }
 
+export async function deleteFolderReview(id: string, actor?: string) {
+  await sb().from("folder_reviews").delete().eq("id", id);
+  await appendAudit(actor ?? "sistema", "baja_carpeta", id);
+}
+
 export async function listClassVisits(opts?: { teacherId?: string | null; schoolId?: string | null }) {
   let q = sb().from("class_visits").select("*");
   if (opts?.teacherId) q = q.eq("teacher_id", opts.teacherId);
@@ -412,6 +417,11 @@ export async function saveClassVisit(
   await appendAudit(opts?.actor ?? "sistema", existing ? "edita_visita" : "captura_visita", teacherId);
   await maybeBackup();
   return withTeacher(row);
+}
+
+export async function deleteClassVisit(id: string, actor?: string) {
+  await sb().from("class_visits").delete().eq("id", id);
+  await appendAudit(actor ?? "sistema", "baja_visita", id);
 }
 
 export async function getDraft(userId: string, kind: string, teacherId?: string) {

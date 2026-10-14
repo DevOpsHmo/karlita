@@ -75,12 +75,6 @@ export default function ResultadosPage() {
         sharePath="/api/zona/share"
         message="Supervisión de Zona X comparte los resultados grupales de las tres escuelas (EST 6, 60 y 72), ciclo 2026-2027."
       />
-      <a
-        href="/api/export/csv?scope=zona"
-        className="no-print mb-4 inline-block text-sm text-[#6a0938] underline"
-      >
-        Exportar CSV de conteos (CTE / jefatura)
-      </a>
       {alerts.length > 0 && (
         <ul className="mb-4 space-y-2">
           {alerts.map((a, i) => (

@@ -14,7 +14,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       title: `Ficha · ${teacher.name}`,
       subtitle: `${teacher.school?.shortName ?? ""} · ${teacher.disciplina}`,
       teacherId: teacher.id,
-      extra: { token: teacher.shareToken, teacherId: teacher.id },
+      extra: {
+        token: teacher.shareToken,
+        teacherId: teacher.id,
+        pdfName: `Ficha ${teacher.name}.pdf`,
+      },
       chartPrefs: prefsFromBody(body),
     })
   );

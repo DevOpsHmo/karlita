@@ -86,6 +86,10 @@ export function VisitForm({
       setError("Seleccione o registre un docente.");
       return;
     }
+    if (!payload.firmaDataUrl?.startsWith("data:image")) {
+      setError("Firme la observación antes de guardar.");
+      return;
+    }
     setSaving(true);
     const url = visitId ? `/api/class-visits/${visitId}` : "/api/class-visits";
     const res = await fetch(url, {
@@ -124,31 +128,52 @@ export function VisitForm({
           onTeacherMeta={onTeacherMeta}
         />
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          {(
-            [
-              ["asignatura", "Asignatura"],
-              ["horario", "Horario"],
-              ["grado", "Grado"],
-              ["grupo", "Grupo"],
-              ["noAlumnos", "No. alumnos"],
-            ] as const
-          ).map(([key, label]) => (
-            <label key={key} className="text-sm">
-              {label}
-              <input
-                className="mt-1 w-full rounded-lg border border-[#d9c9a3] px-3 py-2"
-                value={payload[key]}
-                onChange={(e) => setPayload({ ...payload, [key]: e.target.value })}
-              />
-            </label>
-          ))}
           <label className="text-sm">
-            Turno
+            Asignatura
+            <input
+              className="mt-1 w-full rounded-lg border border-[#d9c9a3] px-3 py-2"
+              value={payload.asignatura}
+              onChange={(e) => setPayload({ ...payload, asignatura: e.target.value })}
+            />
+          </label>
+          <label className="text-sm">
+            Horario
             <Select
               className="mt-1"
-              value={payload.turno}
-              onChange={(turno) => setPayload({ ...payload, turno })}
+              value={payload.horario}
+              placeholder="Seleccione horario…"
+              onChange={(horario) => setPayload({ ...payload, horario, turno: horario })}
               options={TURNO_OPTIONS}
+            />
+          </label>
+          <label className="text-sm">
+            Grado
+            <Select
+              className="mt-1"
+              value={payload.grado}
+              placeholder="Seleccione grado…"
+              onChange={(grado) => setPayload({ ...payload, grado })}
+              options={[
+                { value: "Primer Grado", label: "Primer Grado" },
+                { value: "Segundo Grado", label: "Segundo Grado" },
+                { value: "Tercer Grado", label: "Tercer Grado" },
+              ]}
+            />
+          </label>
+          <label className="text-sm">
+            Grupo
+            <input
+              className="mt-1 w-full rounded-lg border border-[#d9c9a3] px-3 py-2"
+              value={payload.grupo}
+              onChange={(e) => setPayload({ ...payload, grupo: e.target.value })}
+            />
+          </label>
+          <label className="text-sm">
+            No. alumnos
+            <input
+              className="mt-1 w-full rounded-lg border border-[#d9c9a3] px-3 py-2"
+              value={payload.noAlumnos}
+              onChange={(e) => setPayload({ ...payload, noAlumnos: e.target.value })}
             />
           </label>
         </div>
@@ -506,11 +531,11 @@ export function VisitForm({
 
       {signOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
           onClick={() => setSignOpen(false)}
         >
           <div
-            className="w-full max-w-md rounded-2xl bg-[#fffdf8] p-5 ring-1 ring-[#e6dcc8]"
+            className="w-full max-w-md max-h-[90dvh] overflow-y-auto rounded-2xl bg-[#fffdf8] p-5 ring-1 ring-[#e6dcc8]"
             onClick={(e) => e.stopPropagation()}
           >
             <p className="mb-3 font-semibold text-[#6a0938]">Firmar observación</p>
@@ -552,10 +577,13 @@ export function VisitForm({
       )}
       {error && <p className="text-sm text-red-700">{error}</p>}
       <div className="h-20" />
-      <div className="no-print fixed inset-x-0 bottom-0 z-30 flex justify-center border-t border-[#d9c9a3] bg-[#fffdf8] px-4 py-3">
+      <div className="no-print fixed inset-x-0 bottom-0 z-30 flex flex-col items-center border-t border-[#d9c9a3] bg-[#fffdf8] px-4 py-3">
+        {!payload.firmaDataUrl?.startsWith("data:image") && (
+          <p className="mb-2 text-center text-xs text-[#6a0938]">Firme para poder guardar.</p>
+        )}
         <button
           type="submit"
-          disabled={saving}
+          disabled={saving || !payload.firmaDataUrl?.startsWith("data:image")}
           className="cursor-pointer rounded-xl bg-[#6a0938] px-6 py-2.5 font-semibold text-white disabled:opacity-60"
         >
           {saving ? "Guardando…" : "Guardar observación"}
