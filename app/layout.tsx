@@ -11,9 +11,22 @@ const geistSans = Geist({
 export const metadata: Metadata = {
   title: "Supervisión Zona X · 2026-2027",
   description: "Revisión de carpetas y acompañamiento en clase",
+  applicationName: "Zona X",
+  manifest: "/manifest.webmanifest",
+  themeColor: "#6a0938",
   icons: {
-    icon: "/favicon.png",
-    apple: "/favicon.png",
+    icon: [
+      { url: "/favicon.ico", sizes: "32x32" },
+      { url: "/favicon.png", type: "image/png", sizes: "32x32" },
+      { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/icon-512.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  appleWebApp: {
+    capable: true,
+    title: "Zona X",
+    statusBarStyle: "black-translucent",
   },
 };
 

@@ -10,7 +10,12 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api/public") ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api/login") ||
-    pathname === "/favicon.ico"
+    pathname === "/favicon.ico" ||
+    pathname === "/favicon.png" ||
+    pathname === "/apple-touch-icon.png" ||
+    pathname === "/icon-192.png" ||
+    pathname === "/icon-512.png" ||
+    pathname === "/manifest.webmanifest"
   ) {
     return response;
   }
