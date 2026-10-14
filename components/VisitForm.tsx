@@ -14,6 +14,7 @@ import { clearDraft, useCloudDraft } from "@/lib/use-draft";
 import { InstitutionHeader } from "./InstitutionHeader";
 import { TeacherSelect } from "./TeacherSelect";
 import { Select, TURNO_OPTIONS } from "./Select";
+import { SignaturePad } from "./SignaturePad";
 import { YesNo } from "./YesNo";
 
 export function VisitForm({
@@ -35,6 +36,9 @@ export function VisitForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [draftHint, setDraftHint] = useState("");
+  const [signOpen, setSignOpen] = useState(false);
+  const [signName, setSignName] = useState("");
+  const [signPad, setSignPad] = useState("");
 
   useEffect(() => {
     if (!teacherId || schoolId) return;
@@ -434,22 +438,6 @@ export function VisitForm({
 
       <div className={card}>
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className="text-sm">
-            Firma del maestro(a)
-            <input
-              className="mt-1 w-full rounded-lg border border-[#d9c9a3] px-3 py-2"
-              value={payload.firmaMaestro}
-              onChange={(e) => setPayload({ ...payload, firmaMaestro: e.target.value })}
-            />
-          </label>
-          <label className="text-sm">
-            Firma del observador(a)
-            <input
-              className="mt-1 w-full rounded-lg border border-[#d9c9a3] px-3 py-2"
-              value={payload.firmaObservador}
-              onChange={(e) => setPayload({ ...payload, firmaObservador: e.target.value })}
-            />
-          </label>
           <label className="text-sm sm:col-span-2">
             Hermosillo, Sonora — fecha
             <input
@@ -483,8 +471,85 @@ export function VisitForm({
             onChange={(e) => setPayload({ ...payload, observacionesGenerales: e.target.value })}
           />
         </label>
+        <div className="mt-4">
+          {payload.firmaDataUrl ? (
+            <div className="rounded-xl border border-[#e6dcc8] bg-white p-3">
+              <p className="text-sm font-medium text-[#6a0938]">{payload.firmaNombre || "Firmado"}</p>
+              <img src={payload.firmaDataUrl} alt="Firma" className="mt-2 max-h-20 rounded border border-[#e6dcc8]" />
+              <button
+                type="button"
+                className="mt-2 cursor-pointer text-sm text-[#6a0938] underline"
+                onClick={() => {
+                  setSignName(payload.firmaNombre);
+                  setSignPad("");
+                  setSignOpen(true);
+                }}
+              >
+                Cambiar firma
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="cursor-pointer rounded-xl bg-[#6a0938] px-6 py-2.5 font-semibold text-white"
+              onClick={() => {
+                setSignName(payload.firmaNombre);
+                setSignPad("");
+                setSignOpen(true);
+              }}
+            >
+              Firmar
+            </button>
+          )}
+        </div>
       </div>
 
+      {signOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+          onClick={() => setSignOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-[#fffdf8] p-5 ring-1 ring-[#e6dcc8]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="mb-3 font-semibold text-[#6a0938]">Firmar observación</p>
+            <label className="block text-sm">
+              Nombre
+              <input
+                className="mt-1 w-full rounded-lg border border-[#d9c9a3] px-3 py-2"
+                value={signName}
+                onChange={(e) => setSignName(e.target.value)}
+                placeholder="Escriba su nombre"
+                autoFocus
+              />
+            </label>
+            <p className="mb-1 mt-3 text-sm">Firme con el dedo o el mouse</p>
+            <SignaturePad onChange={setSignPad} />
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={!signName.trim() || !signPad}
+                className="cursor-pointer rounded-xl bg-[#6a0938] px-5 py-2 font-semibold text-white disabled:opacity-50"
+                onClick={() => {
+                  setPayload({
+                    ...payload,
+                    firmaNombre: signName.trim(),
+                    firmaDataUrl: signPad,
+                    firmaObservador: signName.trim(),
+                  });
+                  setSignOpen(false);
+                }}
+              >
+                Guardar firma
+              </button>
+              <button type="button" className="cursor-pointer text-sm underline" onClick={() => setSignOpen(false)}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {error && <p className="text-sm text-red-700">{error}</p>}
       <div className="h-20" />
       <div className="no-print fixed inset-x-0 bottom-0 z-30 flex justify-center border-t border-[#d9c9a3] bg-[#fffdf8] px-4 py-3">

@@ -69,6 +69,8 @@ export type VisitPayload = {
   capacitacion: string;
   firmaMaestro: string;
   firmaObservador: string;
+  firmaNombre: string;
+  firmaDataUrl: string;
   fecha: string;
   roles: string[];
   observacionesGenerales: string;
@@ -115,6 +117,8 @@ export function emptyVisitPayload(): VisitPayload {
     capacitacion: "",
     firmaMaestro: "",
     firmaObservador: "",
+    firmaNombre: "",
+    firmaDataUrl: "",
     fecha: "",
     roles: [],
     observacionesGenerales: "",
