@@ -101,16 +101,17 @@ export default function ResultadosPage() {
 
       {stats.schools.map((s) => (
         <section key={s.id} className="mb-4 rounded-2xl bg-[#fffdf8] p-5 ring-1 ring-[#e6dcc8]">
-          <div className="mb-2 flex items-center justify-between">
-            <div>
+          <div className="mb-2 flex items-start justify-between gap-4">
+            <div className="min-w-0 pr-1">
               <h2 className="font-bold">{s.shortName}</h2>
               <p className="text-xs text-[#5a6b5e]">{s.cct}</p>
             </div>
-            <div className="flex flex-col items-end gap-1">
+            <div className="ml-2 flex shrink-0 flex-col items-end gap-1 pl-2 sm:ml-4 sm:pl-3">
               <Link href={`/resultados/escuela/${s.id}`} className="text-sm text-[#6a0938] underline">
                 Ver escuela
               </Link>
               <ShareActions
+                className="mb-0 justify-end"
                 showPrint={true}
                 sharePath={`/api/schools/${s.id}/share`}
                 message={`Supervisión de Zona X comparte los resultados de ${s.shortName} (${s.cct}), ciclo 2026-2027.`}

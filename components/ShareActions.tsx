@@ -10,12 +10,14 @@ export function ShareActions({
   showPrint = true,
   includeAckLink = false,
   signature,
+  className = "",
 }: {
   sharePath: string;
   message: string;
   showPrint?: boolean;
   includeAckLink?: boolean;
   signature?: SignaturePreview | null;
+  className?: string;
 }) {
   const [busy, setBusy] = useState<"pdf" | "wa" | null>(null);
 
@@ -114,7 +116,9 @@ export function ShareActions({
   }
 
   return (
-    <div className="no-print mb-3 flex flex-wrap items-center gap-1.5 sm:mb-4 sm:gap-2">
+    <div
+      className={`no-print flex flex-wrap items-center gap-1.5 sm:gap-2 ${className || "mb-3 sm:mb-4"}`}
+    >
       {showPrint && (
         <button
           type="button"

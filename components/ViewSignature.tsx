@@ -26,7 +26,7 @@ export function ViewSignatureButton({
         type="button"
         disabled={!has}
         onClick={() => has && setOpen(true)}
-        className="cursor-pointer rounded-md bg-[#c4a35a] px-2.5 py-1 text-[11px] font-medium leading-tight text-[#6a0938] disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-lg sm:px-4 sm:py-2 sm:text-sm"
+        className="cursor-pointer rounded-md bg-[#c4a35a] px-2.5 py-1 text-[11px] font-medium leading-tight text-white disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-lg sm:px-4 sm:py-2 sm:text-sm"
       >
         {has ? "Ver firma" : disabledLabel}
       </button>
