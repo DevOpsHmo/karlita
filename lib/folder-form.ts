@@ -87,6 +87,8 @@ export type FolderPayload = {
   roles: string[];
   firmaDocente: string;
   firmaDirector: string;
+  firmaNombre: string;
+  firmaDataUrl: string;
 };
 
 export function emptyFolderPayload(): FolderPayload {
@@ -106,6 +108,8 @@ export function emptyFolderPayload(): FolderPayload {
     roles: [],
     firmaDocente: "",
     firmaDirector: "",
+    firmaNombre: "",
+    firmaDataUrl: "",
   };
 }
 
