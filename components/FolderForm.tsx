@@ -33,7 +33,6 @@ export function FolderForm({
   const [payload, setPayload] = useState<FolderPayload>(initialPayload ?? emptyFolderPayload());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [draftHint, setDraftHint] = useState("");
   const [signOpen, setSignOpen] = useState(false);
   const [signName, setSignName] = useState("");
   const [signPad, setSignPad] = useState("");
@@ -56,7 +55,6 @@ export function FolderForm({
     onRestore: (d) => {
       if (d.payload) setPayload({ ...emptyFolderPayload(), ...(d.payload as FolderPayload) });
       if (d.schoolId) setSchoolId(d.schoolId);
-      setDraftHint("Se recuperó el avance de este maestro. Puede continuar donde se quedó.");
     },
   });
 
@@ -141,12 +139,6 @@ export function FolderForm({
   return (
     <form onSubmit={submit} className="mx-auto max-w-3xl space-y-4 px-4 py-6">
       <InstitutionHeader title="Revisión de carpetas" />
-      {draftHint && (
-        <p className="rounded-lg bg-[#c4a35a] px-3 py-3 text-sm font-semibold text-[#6a0938]">
-          Continuar donde me quedé: se recuperó el avance guardado de esta revisión.
-        </p>
-      )}
-      <p className="text-xs text-[#5a6b5e]">El avance queda en borrador aunque se cierre la página o se apague el celular. No se publica hasta Guardar revisión.</p>
       <div className="rounded-2xl bg-[#fffdf8] p-4 shadow-sm ring-1 ring-[#e6dcc8]">
         <TeacherSelect
           schoolId={schoolId}

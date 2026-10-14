@@ -35,7 +35,6 @@ export function VisitForm({
   const [payload, setPayload] = useState<VisitPayload>(initialPayload ?? emptyVisitPayload());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [draftHint, setDraftHint] = useState("");
   const [signOpen, setSignOpen] = useState(false);
   const [signName, setSignName] = useState("");
   const [signPad, setSignPad] = useState("");
@@ -58,7 +57,6 @@ export function VisitForm({
     onRestore: (d) => {
       if (d.payload) setPayload({ ...emptyVisitPayload(), ...(d.payload as VisitPayload) });
       if (d.schoolId) setSchoolId(d.schoolId);
-      setDraftHint("Se recuperó el avance de este maestro. Puede continuar donde se quedó.");
     },
   });
 
@@ -109,12 +107,6 @@ export function VisitForm({
   return (
     <form onSubmit={submit} className="mx-auto max-w-3xl space-y-4 px-4 py-6">
       <InstitutionHeader title="Acompañamiento y observación de clase" />
-      {draftHint && (
-        <p className="rounded-lg bg-[#c4a35a] px-3 py-3 text-sm font-semibold text-[#6a0938]">
-          Continuar donde me quedé: se recuperó el avance de esta observación.
-        </p>
-      )}
-      <p className="text-xs text-[#5a6b5e]">El avance queda en borrador aunque se cierre la página o se apague el celular. No se publica hasta Guardar observación.</p>
       <div className={card}>
         <TeacherSelect
           schoolId={schoolId}
