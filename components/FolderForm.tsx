@@ -49,7 +49,7 @@ export function FolderForm({
 
   useCloudDraft({
     kind: "folder",
-    enabled: !reviewId,
+    recordId: reviewId,
     schoolId,
     teacherId,
     payload,
@@ -57,10 +57,6 @@ export function FolderForm({
       if (d.payload) setPayload({ ...emptyFolderPayload(), ...(d.payload as FolderPayload) });
       if (d.schoolId) setSchoolId(d.schoolId);
       setDraftHint("Se recuperó el avance de este maestro. Puede continuar donde se quedó.");
-    },
-    onNoDraft: () => {
-      setPayload((p) => ({ ...emptyFolderPayload(), disciplina: p.disciplina, turno: p.turno }));
-      setDraftHint("");
     },
   });
 
@@ -116,7 +112,7 @@ export function FolderForm({
           return;
         }
         const row = await retry.json();
-        await clearDraft("folder", teacherId);
+        await clearDraft("folder", teacherId, reviewId);
         router.push(`/resultados/maestro/${row.teacherId}`);
         return;
       }
@@ -128,7 +124,7 @@ export function FolderForm({
       return;
     }
     const row = await res.json();
-    await clearDraft("folder", teacherId);
+    await clearDraft("folder", teacherId, reviewId);
     router.push(`/resultados/maestro/${row.teacherId}`);
   }
 
@@ -150,7 +146,7 @@ export function FolderForm({
           Continuar donde me quedé: se recuperó el avance guardado de esta revisión.
         </p>
       )}
-      <p className="text-xs text-[#5a6b5e]">El avance se guarda solo por sección, aunque se cierre la pestaña o se cambie de app.</p>
+      <p className="text-xs text-[#5a6b5e]">El avance queda en borrador aunque se cierre la página o se apague el celular. No se publica hasta Guardar revisión.</p>
       <div className="rounded-2xl bg-[#fffdf8] p-4 shadow-sm ring-1 ring-[#e6dcc8]">
         <TeacherSelect
           schoolId={schoolId}

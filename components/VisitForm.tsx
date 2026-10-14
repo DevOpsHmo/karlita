@@ -51,7 +51,7 @@ export function VisitForm({
 
   useCloudDraft({
     kind: "visit",
-    enabled: !visitId,
+    recordId: visitId,
     schoolId,
     teacherId,
     payload,
@@ -59,10 +59,6 @@ export function VisitForm({
       if (d.payload) setPayload({ ...emptyVisitPayload(), ...(d.payload as VisitPayload) });
       if (d.schoolId) setSchoolId(d.schoolId);
       setDraftHint("Se recuperó el avance de este maestro. Puede continuar donde se quedó.");
-    },
-    onNoDraft: () => {
-      setPayload((p) => ({ ...emptyVisitPayload(), asignatura: p.asignatura, turno: p.turno }));
-      setDraftHint("");
     },
   });
 
@@ -104,7 +100,7 @@ export function VisitForm({
       return;
     }
     const row = await res.json();
-    await clearDraft("visit", teacherId);
+    await clearDraft("visit", teacherId, visitId);
     router.push(`/resultados/maestro/${row.teacherId}`);
   }
 
@@ -118,7 +114,7 @@ export function VisitForm({
           Continuar donde me quedé: se recuperó el avance de esta observación.
         </p>
       )}
-      <p className="text-xs text-[#5a6b5e]">El avance se guarda solo por sección, aunque se cierre la pestaña o se cambie de app.</p>
+      <p className="text-xs text-[#5a6b5e]">El avance queda en borrador aunque se cierre la página o se apague el celular. No se publica hasta Guardar observación.</p>
       <div className={card}>
         <TeacherSelect
           schoolId={schoolId}
