@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Bar } from "@/components/Bar";
+import { Bar, maestrosEvaluados } from "@/components/Bar";
 import { ShareActions } from "@/components/ShareActions";
 import { Loading } from "@/components/Loading";
 import { ACK_CLASS, ACK_LABELS } from "@/lib/ack-labels";
@@ -10,7 +10,15 @@ import { Select } from "@/components/Select";
 import { ViewSignatureButton } from "@/components/ViewSignature";
 
 type Stats = {
-  zona: { teachers: number; folderReviews: number; classVisits: number; folderPct: number; visitPct: number };
+  zona: {
+    teachers: number;
+    folderReviews: number;
+    classVisits: number;
+    folderTeachers: number;
+    visitTeachers: number;
+    folderPct: number;
+    visitPct: number;
+  };
   schools: {
     id: string;
     name: string;
@@ -19,6 +27,8 @@ type Stats = {
     teachers: number;
     folderReviews: number;
     classVisits: number;
+    folderTeachers: number;
+    visitTeachers: number;
     folderPct: number;
     visitPct: number;
   }[];
@@ -95,8 +105,16 @@ export default function ResultadosPage() {
         <p className="mb-3 text-sm">
           {stats.zona.teachers} docentes · {stats.zona.folderReviews} carpetas · {stats.zona.classVisits} visitas
         </p>
-        <Bar label="% Sí en carpetas" pct={stats.zona.folderPct} />
-        <Bar label="% Sí en observación" pct={stats.zona.visitPct} />
+        <Bar
+          label="Carpetas"
+          pct={stats.zona.teachers ? Math.round((100 * stats.zona.folderTeachers) / stats.zona.teachers) : 0}
+          value={maestrosEvaluados(stats.zona.folderTeachers)}
+        />
+        <Bar
+          label="Acompañamiento"
+          pct={stats.zona.teachers ? Math.round((100 * stats.zona.visitTeachers) / stats.zona.teachers) : 0}
+          value={maestrosEvaluados(stats.zona.visitTeachers)}
+        />
       </section>
 
       {stats.schools.map((s) => (
@@ -121,8 +139,16 @@ export default function ResultadosPage() {
           <p className="mb-2 text-sm">
             {s.teachers} docentes · {s.folderReviews} carpetas · {s.classVisits} visitas
           </p>
-          <Bar label="Carpetas" pct={s.folderPct} />
-          <Bar label="Observación" pct={s.visitPct} />
+          <Bar
+            label="Carpetas"
+            pct={s.teachers ? Math.round((100 * s.folderTeachers) / s.teachers) : 0}
+            value={maestrosEvaluados(s.folderTeachers)}
+          />
+          <Bar
+            label="Acompañamiento"
+            pct={s.teachers ? Math.round((100 * s.visitTeachers) / s.teachers) : 0}
+            value={maestrosEvaluados(s.visitTeachers)}
+          />
         </section>
       ))}
 

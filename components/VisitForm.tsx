@@ -102,10 +102,10 @@ export function VisitForm({
     router.push(`/resultados/maestro/${row.teacherId}`);
   }
 
-  const card = "rounded-2xl bg-[#fffdf8] p-4 shadow-sm ring-1 ring-[#e6dcc8]";
+  const card = "min-w-0 overflow-hidden rounded-2xl bg-[#fffdf8] p-4 shadow-sm ring-1 ring-[#e6dcc8]";
 
   return (
-    <form onSubmit={submit} className="mx-auto max-w-3xl space-y-4 px-4 py-6">
+    <form onSubmit={submit} className="mx-auto max-w-3xl space-y-4 overflow-x-hidden px-4 py-6">
       <InstitutionHeader title="Acompañamiento y observación de clase" />
       <div className={card}>
         <TeacherSelect
@@ -450,12 +450,12 @@ export function VisitForm({
       </div>
 
       <div className={card}>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="text-sm sm:col-span-2">
+        <div className="grid min-w-0 grid-cols-1 gap-3 overflow-hidden">
+          <label className="min-w-0 text-sm">
             Hermosillo, Sonora — fecha
             <input
               type="date"
-              className="mt-1 w-full rounded-lg border border-[#d9c9a3] px-3 py-2"
+              className="mt-1 block min-w-0 w-full max-w-full rounded-lg border border-[#d9c9a3] px-3 py-2"
               value={payload.fecha}
               onChange={(e) => setPayload({ ...payload, fecha: e.target.value })}
             />

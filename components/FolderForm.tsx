@@ -137,7 +137,7 @@ export function FolderForm({
   let lastSub = "";
 
   return (
-    <form onSubmit={submit} className="mx-auto max-w-3xl space-y-4 px-4 py-6">
+    <form onSubmit={submit} className="mx-auto max-w-3xl space-y-4 overflow-x-hidden px-4 py-6">
       <InstitutionHeader title="Revisión de carpetas" />
       <div className="rounded-2xl bg-[#fffdf8] p-4 shadow-sm ring-1 ring-[#e6dcc8]">
         <TeacherSelect
@@ -220,7 +220,7 @@ export function FolderForm({
         );
       })}
 
-      <div className="rounded-2xl bg-[#fffdf8] p-4 shadow-sm ring-1 ring-[#e6dcc8]">
+      <div className="min-w-0 overflow-hidden rounded-2xl bg-[#fffdf8] p-4 shadow-sm ring-1 ring-[#e6dcc8]">
         <label className="block text-sm font-medium">
           Observaciones y sugerencias generales
           <textarea
@@ -231,7 +231,7 @@ export function FolderForm({
           />
         </label>
         <p className="mt-4 text-sm font-semibold">Seguimiento a observaciones</p>
-        <div className="mt-2 grid gap-3 sm:grid-cols-3">
+        <div className="mt-2 grid min-w-0 grid-cols-1 gap-3 overflow-hidden lg:grid-cols-3">
           {(
             [
               ["verificacion1", 1],
@@ -239,11 +239,11 @@ export function FolderForm({
               ["verificacion3", 3],
             ] as const
           ).map(([key, n]) => (
-            <label key={key} className="text-sm">
+            <label key={key} className="min-w-0 text-sm">
               Verificación No. {n} (fecha)
               <input
                 type="date"
-                className="mt-1 w-full rounded-lg border border-[#d9c9a3] px-3 py-2"
+                className="mt-1 block min-w-0 w-full max-w-full rounded-lg border border-[#d9c9a3] px-3 py-2"
                 value={payload[key]}
                 onChange={(e) => setPayload({ ...payload, [key]: e.target.value })}
               />

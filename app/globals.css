@@ -27,6 +27,20 @@ body {
   overscroll-behavior-y: none;
 }
 
+input,
+textarea,
+select {
+  font-size: 16px;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+input[type="date"] {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
 @media print {
   @page {
     margin: 16mm 14mm;

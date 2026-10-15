@@ -3,14 +3,20 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Bar } from "@/components/Bar";
+import { Bar, maestrosEvaluados } from "@/components/Bar";
 import { InstitutionHeader } from "@/components/InstitutionHeader";
 import { ItemStatsPanel } from "@/components/ItemStatsPanel";
 import { Loading } from "@/components/Loading";
 import { Select } from "@/components/Select";
 import { ShareActions } from "@/components/ShareActions";
+import { ACK_CLASS, ACK_LABELS } from "@/lib/ack-labels";
 import { folderYesPercent, type FolderPayload } from "@/lib/folder-form";
 import { visitYesPercent, type VisitPayload } from "@/lib/visit-form";
+
+type AckRow = {
+  status: keyof typeof ACK_LABELS;
+  ack: { agreed: boolean; firmaDataUrl: string; comentario: string; signedAt: string } | null;
+};
 
 export default function EscuelaPage() {
   const { id } = useParams<{ id: string }>();
@@ -25,9 +31,7 @@ export default function EscuelaPage() {
       classVisits: { payload: string }[];
     }[]
   >([]);
-  const [acks, setAcks] = useState<
-    Record<string, { agreed: boolean; firmaDataUrl: string; comentario: string; signedAt: string } | null>
-  >({});
+  const [acks, setAcks] = useState<Record<string, AckRow>>({});
 
   useEffect(() => {
     Promise.all([
@@ -47,9 +51,13 @@ export default function EscuelaPage() {
       setTeachers(merged);
       setAcks(
         Object.fromEntries(
-          (ackRows as { teacherId: string; ack: { agreed: boolean; firmaDataUrl: string; comentario: string; signedAt: string } | null }[]).map(
-            (r) => [r.teacherId, r.ack]
-          )
+          (
+            ackRows as {
+              teacherId: string;
+              status: keyof typeof ACK_LABELS;
+              ack: AckRow["ack"];
+            }[]
+          ).map((r) => [r.teacherId, { status: r.status, ack: r.ack }])
         )
       );
     });
@@ -57,12 +65,6 @@ export default function EscuelaPage() {
 
   if (!school) return <Loading />;
 
-  const folderPcts = teachers.flatMap((t) =>
-    t.folderReviews.map((r) => folderYesPercent(JSON.parse(r.payload) as FolderPayload).pct)
-  );
-  const visitPcts = teachers.flatMap((t) =>
-    t.classVisits.map((r) => visitYesPercent(JSON.parse(r.payload) as VisitPayload).pct)
-  );
   const avg = (a: number[]) => (a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length) : 0);
 
   return (
@@ -74,12 +76,12 @@ export default function EscuelaPage() {
         sharePath={view === "escuela" ? `/api/schools/${id}/share` : `/api/teachers/${view}/share`}
         includeAckLink={view !== "escuela"}
         signature={
-          view !== "escuela" && acks[view]?.firmaDataUrl
+          view !== "escuela" && acks[view]?.ack?.firmaDataUrl
             ? {
-                image: acks[view]!.firmaDataUrl,
-                agreed: acks[view]!.agreed,
-                signedAt: acks[view]!.signedAt,
-                comment: acks[view]!.comentario,
+                image: acks[view].ack!.firmaDataUrl,
+                agreed: acks[view].ack!.agreed,
+                signedAt: acks[view].ack!.signedAt,
+                comment: acks[view].ack!.comentario,
                 teacherName: teachers.find((t) => t.id === view)?.name,
               }
             : null
@@ -105,8 +107,16 @@ export default function EscuelaPage() {
         </label>
       </div>
       <div className="mb-6 rounded-2xl bg-[#fffdf8] p-5 ring-1 ring-[#e6dcc8]">
-        <Bar label="Carpetas (% Sí)" pct={avg(folderPcts)} />
-        <Bar label="Observación (% Sí)" pct={avg(visitPcts)} />
+        <Bar
+          label="Carpetas"
+          pct={teachers.length ? Math.round((100 * teachers.filter((t) => t.folderReviews.length).length) / teachers.length) : 0}
+          value={maestrosEvaluados(teachers.filter((t) => t.folderReviews.length).length)}
+        />
+        <Bar
+          label="Acompañamiento"
+          pct={teachers.length ? Math.round((100 * teachers.filter((t) => t.classVisits.length).length) / teachers.length) : 0}
+          value={maestrosEvaluados(teachers.filter((t) => t.classVisits.length).length)}
+        />
       </div>
       <ItemStatsPanel
         emptyLabel={`Aún no hay revisiones en ${school.shortName}.`}
@@ -122,15 +132,33 @@ export default function EscuelaPage() {
           const vp = avg(t.classVisits.map((r) => visitYesPercent(JSON.parse(r.payload) as VisitPayload).pct));
           return (
             <li key={t.id} className="rounded-xl bg-[#fffdf8] px-4 py-3 ring-1 ring-[#e6dcc8]">
-              <Link href={`/resultados/maestro/${t.id}`} className="font-medium text-[#6a0938]">
-                {t.name}
-              </Link>
+              <div className="mb-1 flex flex-wrap items-center gap-2">
+                <Link href={`/resultados/maestro/${t.id}`} className="font-medium text-[#6a0938]">
+                  {t.name}
+                </Link>
+                {acks[t.id] && (
+                  <span className={`rounded-full px-2 py-0.5 text-xs ${ACK_CLASS[acks[t.id].status]}`}>
+                    {ACK_LABELS[acks[t.id].status]}
+                  </span>
+                )}
+              </div>
               <p className="mb-2 text-xs text-[#5a6b5e]">
                 {t.disciplina} · Carpetas {fp}% · Observación {vp}%
               </p>
               <ShareActions
                 sharePath={`/api/teachers/${t.id}/share`}
                 includeAckLink
+                signature={
+                  acks[t.id]?.ack?.firmaDataUrl
+                    ? {
+                        image: acks[t.id].ack!.firmaDataUrl,
+                        agreed: acks[t.id].ack!.agreed,
+                        signedAt: acks[t.id].ack!.signedAt,
+                        comment: acks[t.id].ack!.comentario,
+                        teacherName: t.name,
+                      }
+                    : null
+                }
                 message={`Hola ${t.name}. Supervisión de Zona X le comparte el resumen de su evaluación (ciclo 2026-2027).`}
               />
             </li>

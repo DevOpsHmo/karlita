@@ -17,7 +17,10 @@ export async function GET() {
     const visitPercents: number[] = [];
     const quality: Record<string, number> = { Excelente: 0, Bueno: 0, Regular: 0, Malo: 0 };
     const ids = new Set(schoolTeachers.map((t) => t.id));
+    const folderTeacherIds = new Set<string>();
+    const visitTeacherIds = new Set<string>();
     for (const r of folders.filter((x) => ids.has(x.teacherId))) {
+      folderTeacherIds.add(r.teacherId);
       try {
         folderPercents.push(folderYesPercent(JSON.parse(r.payload) as FolderPayload).pct);
       } catch {
@@ -25,6 +28,7 @@ export async function GET() {
       }
     }
     for (const v of visits.filter((x) => ids.has(x.teacherId))) {
+      visitTeacherIds.add(v.teacherId);
       try {
         const p = JSON.parse(v.payload) as VisitPayload;
         visitPercents.push(visitYesPercent(p).pct);
@@ -43,6 +47,8 @@ export async function GET() {
       teachers: schoolTeachers.length,
       folderReviews: folderPercents.length,
       classVisits: visitPercents.length,
+      folderTeachers: folderTeacherIds.size,
+      visitTeachers: visitTeacherIds.size,
       folderPct: avg(folderPercents),
       visitPct: avg(visitPercents),
       quality,
@@ -55,6 +61,8 @@ export async function GET() {
     teachers: bySchool.reduce((a, s) => a + s.teachers, 0),
     folderReviews: bySchool.reduce((a, s) => a + s.folderReviews, 0),
     classVisits: bySchool.reduce((a, s) => a + s.classVisits, 0),
+    folderTeachers: bySchool.reduce((a, s) => a + s.folderTeachers, 0),
+    visitTeachers: bySchool.reduce((a, s) => a + s.visitTeachers, 0),
     folderPct: withFolders.length
       ? Math.round(withFolders.reduce((a, s) => a + s.folderPct, 0) / withFolders.length)
       : 0,
